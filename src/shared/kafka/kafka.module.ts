@@ -2,34 +2,6 @@ import { ConfigService } from '../../config/config.service';
 import { Global, Inject, Logger, Module, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { ClientKafka, ClientsModule } from '@nestjs/microservices';
 
-export class KafkaModuleImpl implements OnModuleInit, OnModuleDestroy {
-  private logger = new Logger(KafkaModuleImpl.name);
-  
-  constructor(
-    @Inject('KAFKA_CLIENT') private readonly client: ClientKafka,
-    @Inject(ConfigService) private readonly configServer: any,
-  ) {}
-
-  async onModuleInit() {
-    this.logger.log('onModuleInit');
-    const configServer = this.configServer;
-    if (!configServer.kafka) {
-      this.logger.warn('kafka config not found, skipping subscription');
-      return;
-    }
-    const subscribeTopics = configServer.kafka.subscribeTopics;
-    subscribeTopics?.forEach((key) => {
-      this.logger.log(`Subscribing to ${key}`);
-      this.client.subscribeToResponseOf(`msg.${key}`);
-    });
-    await this.client.connect();
-  }
-
-  async onModuleDestroy() {
-    await this.client.close();
-  }
-}
-
 @Global()
 @Module({
   imports: [
@@ -46,7 +18,32 @@ export class KafkaModuleImpl implements OnModuleInit, OnModuleDestroy {
       },
     ]),
   ],
-  providers: [KafkaModuleImpl],
-  exports: [ClientsModule, KafkaModuleImpl],
+  exports: [ClientsModule],
 })
-export class KafkaModule {}
+export class KafkaModule implements OnModuleInit, OnModuleDestroy {
+  private logger = new Logger(KafkaModule.name);
+  
+  constructor(
+    @Inject('KAFKA_CLIENT') private readonly client: ClientKafka,
+    private readonly configServer: ConfigService,
+  ) {}
+
+  async onModuleInit() {
+    this.logger.log('onModuleInit');
+    const configServer = this.configServer as any;
+    if (!configServer.kafka) {
+      this.logger.warn('kafka config not found, skipping subscription');
+      return;
+    }
+    const subscribeTopics = configServer.kafka.subscribeTopics;
+    subscribeTopics?.forEach((key) => {
+      this.logger.log(`Subscribing to ${key}`);
+      this.client.subscribeToResponseOf(`msg.${key}`);
+    });
+    await this.client.connect();
+  }
+
+  async onModuleDestroy() {
+    await this.client.close();
+  }
+}
