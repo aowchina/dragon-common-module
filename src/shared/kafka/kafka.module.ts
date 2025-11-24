@@ -1,6 +1,5 @@
 import { ConfigService } from '../../config/config.service';
 import { Global, Inject, Logger, Module, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
-import { ModuleRef } from '@nestjs/core';
 import { ClientKafka, ClientsModule } from '@nestjs/microservices';
 
 @Global()
@@ -19,23 +18,27 @@ import { ClientKafka, ClientsModule } from '@nestjs/microservices';
       },
     ]),
   ],
-  exports: [ClientsModule],
+  providers: [
+    {
+      provide: 'KAFKA_MODULE_IMPL',
+      useClass: KafkaModuleImpl,
+    },
+  ],
+  exports: [ClientsModule, 'KAFKA_MODULE_IMPL'],
 })
-export class KafkaModule implements OnModuleInit, OnModuleDestroy {
-  private logger = new Logger(KafkaModule.name);
-  private configServer: any;
+export class KafkaModule {}
+
+export class KafkaModuleImpl implements OnModuleInit, OnModuleDestroy {
+  private logger = new Logger(KafkaModuleImpl.name);
   
   constructor(
     @Inject('KAFKA_CLIENT') private readonly client: ClientKafka,
-    private readonly moduleRef: ModuleRef,
-  ) {
-    // Get ConfigService from moduleRef to work with any extended ConfigService
-    this.configServer = this.moduleRef.get(ConfigService, { strict: false });
-  }
+    @Inject(ConfigService) private readonly configServer: any,
+  ) {}
 
   async onModuleInit() {
     this.logger.log('onModuleInit');
-    const configServer = this.configServer as any;
+    const configServer = this.configServer;
     if (!configServer.kafka) {
       this.logger.warn('kafka config not found, skipping subscription');
       return;
