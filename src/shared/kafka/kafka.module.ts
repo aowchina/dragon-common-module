@@ -24,7 +24,7 @@ export class KafkaModule implements OnModuleInit, OnModuleDestroy {
   private logger = new Logger(KafkaModule.name);
   constructor(
     @Inject('KAFKA_CLIENT') private readonly client: ClientKafka,
-    private readonly configServer: ConfigService,
+    @Inject(ConfigService) private readonly configServer: any,
   ) {}
 
   async onModuleInit() {
