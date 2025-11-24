@@ -2,32 +2,6 @@ import { ConfigService } from '../../config/config.service';
 import { Global, Inject, Logger, Module, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { ClientKafka, ClientsModule } from '@nestjs/microservices';
 
-@Global()
-@Module({
-  imports: [
-    ClientsModule.registerAsync([
-      {
-        name: 'KAFKA_CLIENT',
-        useFactory: async (configService: any) => {
-          if (!configService.kafka) {
-            throw new Error('kafka config is required in ConfigService');
-          }
-          return configService.kafka;
-        },
-        inject: [ConfigService],
-      },
-    ]),
-  ],
-  providers: [
-    {
-      provide: 'KAFKA_MODULE_IMPL',
-      useClass: KafkaModuleImpl,
-    },
-  ],
-  exports: [ClientsModule, 'KAFKA_MODULE_IMPL'],
-})
-export class KafkaModule {}
-
 export class KafkaModuleImpl implements OnModuleInit, OnModuleDestroy {
   private logger = new Logger(KafkaModuleImpl.name);
   
@@ -55,3 +29,24 @@ export class KafkaModuleImpl implements OnModuleInit, OnModuleDestroy {
     await this.client.close();
   }
 }
+
+@Global()
+@Module({
+  imports: [
+    ClientsModule.registerAsync([
+      {
+        name: 'KAFKA_CLIENT',
+        useFactory: async (configService: any) => {
+          if (!configService.kafka) {
+            throw new Error('kafka config is required in ConfigService');
+          }
+          return configService.kafka;
+        },
+        inject: [ConfigService],
+      },
+    ]),
+  ],
+  providers: [KafkaModuleImpl],
+  exports: [ClientsModule, KafkaModuleImpl],
+})
+export class KafkaModule {}
