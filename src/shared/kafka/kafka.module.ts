@@ -1,5 +1,5 @@
 import { ConfigService } from '../../config/config.service';
-import { Global, Inject, Injector, Logger, Module, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
+import { Global, Inject, Logger, Module, ModuleRef, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { ClientKafka, ClientsModule } from '@nestjs/microservices';
 
 @Global()
@@ -26,10 +26,10 @@ export class KafkaModule implements OnModuleInit, OnModuleDestroy {
   
   constructor(
     @Inject('KAFKA_CLIENT') private readonly client: ClientKafka,
-    private readonly injector: Injector,
+    private readonly moduleRef: ModuleRef,
   ) {
-    // Get ConfigService from injector to work with any extended ConfigService
-    this.configServer = this.injector.get(ConfigService, { strict: false });
+    // Get ConfigService from moduleRef to work with any extended ConfigService
+    this.configServer = this.moduleRef.get(ConfigService, { strict: false });
   }
 
   async onModuleInit() {
