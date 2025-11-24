@@ -18,6 +18,15 @@ import { ClientKafka, ClientsModule } from '@nestjs/microservices';
       },
     ]),
   ],
+  providers: [
+    {
+      provide: 'KAFKA_SUBSCRIBE_TOPICS',
+      useFactory: (configService: any) => {
+        return configService.kafka?.subscribeTopics || [];
+      },
+      inject: [ConfigService],
+    },
+  ],
   exports: [ClientsModule],
 })
 export class KafkaModule implements OnModuleInit, OnModuleDestroy {
@@ -25,18 +34,16 @@ export class KafkaModule implements OnModuleInit, OnModuleDestroy {
   
   constructor(
     @Inject('KAFKA_CLIENT') private readonly client: ClientKafka,
-    private readonly configServer: ConfigService,
+    @Inject('KAFKA_SUBSCRIBE_TOPICS') private readonly subscribeTopics: string[],
   ) {}
 
   async onModuleInit() {
     this.logger.log('onModuleInit');
-    const configServer = this.configServer as any;
-    if (!configServer.kafka) {
-      this.logger.warn('kafka config not found, skipping subscription');
+    if (!this.subscribeTopics || this.subscribeTopics.length === 0) {
+      this.logger.warn('No kafka subscribe topics found, skipping subscription');
       return;
     }
-    const subscribeTopics = configServer.kafka.subscribeTopics;
-    subscribeTopics?.forEach((key) => {
+    this.subscribeTopics.forEach((key) => {
       this.logger.log(`Subscribing to ${key}`);
       this.client.subscribeToResponseOf(`msg.${key}`);
     });
