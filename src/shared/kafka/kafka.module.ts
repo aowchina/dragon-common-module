@@ -1,4 +1,4 @@
-import { ConfigService } from '../../config';
+import { ConfigService } from '../../config/config.service';
 import { Global, Inject, Logger, Module, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { ClientKafka, ClientsModule } from '@nestjs/microservices';
 
@@ -8,7 +8,12 @@ import { ClientKafka, ClientsModule } from '@nestjs/microservices';
     ClientsModule.registerAsync([
       {
         name: 'KAFKA_CLIENT',
-        useFactory: async (configService: ConfigService) => configService.kafka,
+        useFactory: async (configService: any) => {
+          if (!configService.kafka) {
+            throw new Error('kafka config is required in ConfigService');
+          }
+          return configService.kafka;
+        },
         inject: [ConfigService],
       },
     ]),
@@ -24,7 +29,12 @@ export class KafkaModule implements OnModuleInit, OnModuleDestroy {
 
   async onModuleInit() {
     this.logger.log('onModuleInit');
-    const subscribeTopics = this.configServer.kafka.subscribeTopics;
+    const configServer = this.configServer as any;
+    if (!configServer.kafka) {
+      this.logger.warn('kafka config not found, skipping subscription');
+      return;
+    }
+    const subscribeTopics = configServer.kafka.subscribeTopics;
     subscribeTopics?.forEach((key) => {
       this.logger.log(`Subscribing to ${key}`);
       this.client.subscribeToResponseOf(`msg.${key}`);

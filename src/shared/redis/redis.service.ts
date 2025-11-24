@@ -1,12 +1,16 @@
 import { Injectable } from '@nestjs/common';
 import Redis from 'ioredis';
-import { ConfigService } from '../../config';
+import { ConfigService } from '../../config/config.service';
 
 @Injectable()
 export class RedisService {
   private client: any;
   constructor(private readonly configService: ConfigService) {
-    const redisConfig = this.configService.redis;
+    const config = this.configService as any;
+    if (!config.redis) {
+      throw new Error('redis config is required in ConfigService');
+    }
+    const redisConfig = config.redis;
     if (redisConfig.nodes) {
       this.client = new Redis.Cluster(redisConfig.nodes, redisConfig);
     } else {

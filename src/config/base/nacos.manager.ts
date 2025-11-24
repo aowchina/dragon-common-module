@@ -3,6 +3,7 @@ import { NacosServerConfig } from '../config.setup';
 import { Kafka2HttpConfig, NacosConfig } from './config.interface';
 
 export class NacosManager extends NacosServerConfig {
+    protected DATA_ID = 'app.default'; // Default value, should be set by service
     private static _instance?: NacosManager;
     private _logger = new Logger(NacosManager.name);
     private _kafka2HttpConfig?: Kafka2HttpConfig;

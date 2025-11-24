@@ -1,30 +1,34 @@
-import * as _ from 'lodash';
-import { AdminConfig, KafkaConfig, MongoConfig, RedisConfig, ServerConfig, ServiceConfig } from './type';
 import { BaseConfigService } from './base/baseconfig.service';
 import { NacosConfig } from './base/config.interface';
-import { BtiConfig } from './type/bti.config';
 
+/**
+ * Base ConfigService that can be extended by each service.
+ * Each service should create its own ConfigService with specific config types.
+ * 
+ * @example
+ * ```typescript
+ * import { ConfigService as BaseConfigService } from '@dragon/common';
+ * import { ServerConfig, MongoConfig, KafkaConfig } from './types';
+ * 
+ * export class ConfigService extends BaseConfigService {
+ *   readonly server: ServerConfig;
+ *   readonly mongo: MongoConfig;
+ *   readonly kafka: KafkaConfig;
+ * 
+ *   constructor(nacosConfigs?: NacosConfig) {
+ *     super(nacosConfigs);
+ *     this.server = new ServerConfig(this.nacosConfigs.server);
+ *     this.mongo = new MongoConfig(this.nacosConfigs.mongo);
+ *     this.kafka = new KafkaConfig(this.nacosConfigs.kafka);
+ *   }
+ * }
+ * ```
+ */
 export class ConfigService extends BaseConfigService {
-  readonly server: ServerConfig;
-  readonly mongo: MongoConfig;
-  readonly kafka: KafkaConfig;
-  readonly service: ServiceConfig;
-  readonly bti: BtiConfig;
-  readonly redis: RedisConfig;
-  readonly admin: AdminConfig;
-
   constructor(nacosConfigs?: NacosConfig) {
     super(nacosConfigs);
-    this.mongo = new MongoConfig(this.nacosConfigs.mongo);
-    this.server = new ServerConfig(this.nacosConfigs.server);
-    this.kafka = new KafkaConfig(this.nacosConfigs.kafka);
-    this.service = new ServiceConfig(this.nacosConfigs.service);
-    this.bti = new BtiConfig(this.nacosConfigs.bti);
-    this.redis = new RedisConfig(this.nacosConfigs.redis);
-    this.admin = new AdminConfig(this.nacosConfigs.admin);
-  }
-
-  getServiceConfig() {
-    return this.service;
   }
 }
+
+// Re-export BaseConfigService for services that want to extend it directly
+export { BaseConfigService };
