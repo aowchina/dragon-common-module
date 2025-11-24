@@ -44,8 +44,10 @@ export class NacosManager extends NacosServerConfig {
     }
 
     // get all config for dataId "{appid}" and group "DEFAULT_GROUP"
-    async setupNacosConfig(): Promise<NacosConfig | undefined> {
-        const config = await this.getConfig(this.DATA_ID, this.GROUP);
+    // Pass in a NacosServerConfig subclass instance to use its DATA_ID
+    async setupNacosConfig(nacosConfigClass?: NacosServerConfig): Promise<NacosConfig | undefined> {
+        const configDataId = nacosConfigClass ? (nacosConfigClass as any).DATA_ID : this.DATA_ID;
+        const config = await this.getConfig(configDataId, this.GROUP);
         if (config) {
             this._kafka2HttpConfig = config['useKafka2Http']
                 ? await this.getConfig(this.NAMING_DATA_ID, this.GROUP)
