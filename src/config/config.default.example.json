@@ -1,0 +1,91 @@
+{
+    "redis": {
+        "host": "test-master-slave.vnt2qy.ng.0001.apse1.cache.amazonaws.com",
+        "port": 6379,
+        "family": 4,
+        "db": 0
+    },
+    "db": {
+    "type": "mysql",
+    "host": "database-test1.cvjrqhcoolrr.ap-southeast-1.rds.amazonaws.com",
+    "port": 3306,
+    "username": "devadmin",
+    "password": "BKun3DY5aFvU",
+    "database": "dragon_activity",
+    "charset": "utf8mb4",
+    "synchronize": false,
+    "migrationsRun": false,
+    "entities": ["{{__dirname + '/../..' + '/**/*.entity{.ts,.js}'}}"],
+    "logging": "all",
+    "logger": "simple-console",
+    "maxQueryExecutionTime": 500
+    },
+    "mongo": {
+        "uri": "mongodb+srv://devadmin:BKun3DY5aFvU@cluster-test.bukbs.mongodb.net/activity?retryWrites=true&w=majority"
+    },
+    "service": {
+        "options": {
+            "client": {
+                "clientId": "activity_service_main",
+                "brokers": ["kafka-0.kafka-headless:9092", "kafka-1.kafka-headless:9092", "kafka-2.kafka-headless:9092"]
+            },
+            "consumer": {
+                "groupId": "activity_service_group"
+            }
+        }
+    },
+    "kafka": {
+        "options": {
+            "client": {
+                "clientId": "activity_client",
+                "brokers": ["kafka-0.kafka-headless:9092", "kafka-1.kafka-headless:9092", "kafka-2.kafka-headless:9092"]
+            },
+            "consumer": {
+                "groupId": "activity_consumer_group_{{Math.random().toString(36).substring(7)}}",
+                "allowAutoTopicCreation": true
+            }
+        },
+        "subscribeTopics": ["wallet", "data", "auth", "user", "bti", "profile", "crm"]
+    },
+    "logger": {
+        "indexPrefix": "test-up-backend-activity-service",
+        "indexSuffixPattern": "YYYY.MM",
+        "clientOpts": {
+                "node": "https://es-log.es.ap-southeast-1.aws.found.io",
+                "auth": {
+                    "username": "elastic",
+                    "password": "Ix7J48iq4H6sjaSTSHFz5AjQ"
+                },
+                "maxRetries": 5,
+                "requestTimeout": 10000,
+                "sniffOnStart": "false"
+            }
+    },
+    "server": {
+		"siteName": "activity",
+		"url": "http://app.test.com",
+		"domain": "app.dragon.fly.com",
+		"allowOrigins": [],
+		"port": 3060,
+		"apiPrefix": "",
+		"tokenName": "token",
+		"jwtSecret": "ema21ioirJikXIkLCJugmeiv",
+		"jwtExpiresIn": 1209600,
+		"rateLimitWindowMs": 900000,
+		"rateLimitMax": 1000,
+		"swaggerPrefix": "api"
+	},
+    "bti": {
+        "baseUrl": "https://prod20255-119686371.442hattrick.com/api/rogue/v1/",
+		"AgentId": "119686371",
+		"DomainId": "2104",
+		"securityKey": "0AjRcW2cDNFiY365qfjKG8ba6",
+		"freeBetUrl": "https://usersacc.bti.bet/api",
+		"freeBetAuthUrl": "https://auth.bti.bet/api",
+		"clientId": "qWufCjv2usjcdXpDppGIhUYbU1GD7ugZ",
+		"clientSecret": "VpVQnaLWXMrs7qhYqD-mTkYu_SqlnoM58UnPjOJfxSN59vAPV9Cj_eD6SAuFhUR_"
+	},
+    "admin": {
+        "host": "https://admin.dragon.fly.com"
+    }
+}

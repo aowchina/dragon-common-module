@@ -1,0 +1,34 @@
+{
+  "name": "@dragon/common",
+  "version": "1.0.0",
+  "description": "Dragon Common Module - Shared utilities and services",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "watch": "tsc --watch",
+    "clean": "rimraf dist"
+  },
+  "keywords": ["dragon", "common", "shared"],
+  "author": "Dragon Team",
+  "license": "UNLICENSED",
+  "peerDependencies": {
+    "@nestjs/common": "^11.1.8",
+    "@nestjs/core": "^11.1.8",
+    "@nestjs/microservices": "^11.1.8",
+    "axios": "^1.13.2",
+    "ioredis": "^5.8.2",
+    "kafkajs": "^2.2.3",
+    "rxjs": "^7.8.2"
+  },
+  "dependencies": {
+    "lodash": "^4.17.21",
+    "typeorm": "^0.3.20"
+  },
+  "devDependencies": {
+    "@types/lodash": "^4.17.13",
+    "@types/node": "^24.10.0",
+    "rimraf": "^6.1.0",
+    "typescript": "^5.9.3"
+  }
+}
