@@ -31,11 +31,11 @@ class KafkaService implements OnModuleInit, OnModuleDestroy {
 @Global()
 @Module({})
 export class KafkaModule {
-  static forRootAsync(configModule: any): DynamicModule {
+  static forRootAsync(): DynamicModule {
     return {
       module: KafkaModule,
+      global: true,
       imports: [
-        configModule,
         ClientsModule.registerAsync([
           {
             name: 'KAFKA_CLIENT',
