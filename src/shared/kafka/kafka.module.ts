@@ -1,5 +1,6 @@
 import { ConfigService } from '../../config/config.service';
-import { Global, Inject, Logger, Module, ModuleRef, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
+import { Global, Inject, Logger, Module, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
+import { ModuleRef } from '@nestjs/core';
 import { ClientKafka, ClientsModule } from '@nestjs/microservices';
 
 @Global()
