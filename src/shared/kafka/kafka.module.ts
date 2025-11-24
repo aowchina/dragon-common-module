@@ -1,6 +1,10 @@
-import { ConfigService } from '../../config/config.service';
 import { DynamicModule, Global, Inject, Logger, Module, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
-import { ClientKafka, ClientsModule } from '@nestjs/microservices';
+import { ClientKafka, ClientsModule, KafkaOptions } from '@nestjs/microservices';
+
+export interface KafkaModuleOptions {
+  kafkaConfig: KafkaOptions['options'];
+  subscribeTopics?: string[];
+}
 
 class KafkaService implements OnModuleInit, OnModuleDestroy {
   private logger = new Logger(KafkaService.name);
@@ -11,7 +15,7 @@ class KafkaService implements OnModuleInit, OnModuleDestroy {
   ) {}
 
   async onModuleInit() {
-    this.logger.log('onModuleInit');
+    this.logger.log('KafkaService onModuleInit');
     if (!this.subscribeTopics || this.subscribeTopics.length === 0) {
       this.logger.warn('No kafka subscribe topics found, skipping subscription');
       return;
@@ -28,10 +32,35 @@ class KafkaService implements OnModuleInit, OnModuleDestroy {
   }
 }
 
-@Global()
 @Module({})
 export class KafkaModule {
-  static forRootAsync(): DynamicModule {
+  static forRoot(options: KafkaModuleOptions): DynamicModule {
+    return {
+      module: KafkaModule,
+      global: true,
+      imports: [
+        ClientsModule.register([
+          {
+            name: 'KAFKA_CLIENT',
+            ...options.kafkaConfig,
+          },
+        ]),
+      ],
+      providers: [
+        {
+          provide: 'KAFKA_SUBSCRIBE_TOPICS',
+          useValue: options.subscribeTopics || [],
+        },
+        KafkaService,
+      ],
+      exports: [ClientsModule, KafkaService],
+    };
+  }
+
+  static forRootAsync(options: {
+    useFactory: (...args: any[]) => Promise<KafkaModuleOptions> | KafkaModuleOptions;
+    inject?: any[];
+  }): DynamicModule {
     return {
       module: KafkaModule,
       global: true,
@@ -39,27 +68,26 @@ export class KafkaModule {
         ClientsModule.registerAsync([
           {
             name: 'KAFKA_CLIENT',
-            useFactory: async (configService: any) => {
-              if (!configService.kafka) {
-                throw new Error('kafka config is required in ConfigService');
-              }
-              return configService.kafka;
+            useFactory: async (...args: any[]) => {
+              const config = await options.useFactory(...args);
+              return config.kafkaConfig;
             },
-            inject: [ConfigService],
+            inject: options.inject || [],
           },
         ]),
       ],
       providers: [
         {
           provide: 'KAFKA_SUBSCRIBE_TOPICS',
-          useFactory: (configService: any) => {
-            return configService.kafka?.subscribeTopics || [];
+          useFactory: async (...args: any[]) => {
+            const config = await options.useFactory(...args);
+            return config.subscribeTopics || [];
           },
-          inject: [ConfigService],
+          inject: options.inject || [],
         },
         KafkaService,
       ],
-      exports: [ClientsModule],
+      exports: [ClientsModule, KafkaService],
     };
   }
 }
