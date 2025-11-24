@@ -1,8 +1,8 @@
 import { DynamicModule, Global, Inject, Logger, Module, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
-import { ClientKafka, ClientsModule, KafkaOptions } from '@nestjs/microservices';
+import { ClientKafka, ClientsModule } from '@nestjs/microservices';
 
 export interface KafkaModuleOptions {
-  kafkaConfig: KafkaOptions['options'];
+  kafkaConfig: any; // Complete Kafka client configuration
   subscribeTopics?: string[];
 }
 
