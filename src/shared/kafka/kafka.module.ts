@@ -1,36 +1,9 @@
 import { ConfigService } from '../../config/config.service';
-import { Global, Inject, Logger, Module, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
+import { DynamicModule, Global, Inject, Logger, Module, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { ClientKafka, ClientsModule } from '@nestjs/microservices';
 
-@Global()
-@Module({
-  imports: [
-    ClientsModule.registerAsync([
-      {
-        name: 'KAFKA_CLIENT',
-        useFactory: async (configService: any) => {
-          if (!configService.kafka) {
-            throw new Error('kafka config is required in ConfigService');
-          }
-          return configService.kafka;
-        },
-        inject: [ConfigService],
-      },
-    ]),
-  ],
-  providers: [
-    {
-      provide: 'KAFKA_SUBSCRIBE_TOPICS',
-      useFactory: (configService: any) => {
-        return configService.kafka?.subscribeTopics || [];
-      },
-      inject: [ConfigService],
-    },
-  ],
-  exports: [ClientsModule],
-})
-export class KafkaModule implements OnModuleInit, OnModuleDestroy {
-  private logger = new Logger(KafkaModule.name);
+class KafkaService implements OnModuleInit, OnModuleDestroy {
+  private logger = new Logger(KafkaService.name);
   
   constructor(
     @Inject('KAFKA_CLIENT') private readonly client: ClientKafka,
@@ -52,5 +25,40 @@ export class KafkaModule implements OnModuleInit, OnModuleDestroy {
 
   async onModuleDestroy() {
     await this.client.close();
+  }
+}
+
+@Global()
+@Module({})
+export class KafkaModule {
+  static forRootAsync(): DynamicModule {
+    return {
+      module: KafkaModule,
+      imports: [
+        ClientsModule.registerAsync([
+          {
+            name: 'KAFKA_CLIENT',
+            useFactory: async (configService: any) => {
+              if (!configService.kafka) {
+                throw new Error('kafka config is required in ConfigService');
+              }
+              return configService.kafka;
+            },
+            inject: [ConfigService],
+          },
+        ]),
+      ],
+      providers: [
+        {
+          provide: 'KAFKA_SUBSCRIBE_TOPICS',
+          useFactory: (configService: any) => {
+            return configService.kafka?.subscribeTopics || [];
+          },
+          inject: [ConfigService],
+        },
+        KafkaService,
+      ],
+      exports: [ClientsModule],
+    };
   }
 }
