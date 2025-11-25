@@ -105,6 +105,11 @@ interface AdminConfig {
   host: string;
 }
 
+export interface AuthConfig {
+  user: string;
+  pass: string;
+}
+
 export interface Kafka2HttpConfig {
   registry: { [key: string]: string };
 }

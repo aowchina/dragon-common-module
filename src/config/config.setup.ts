@@ -1,17 +1,21 @@
 /**
- * Abstract base class for Nacos server configuration.
- * Each service should extend this class and provide its own DATA_ID.
+ * Nacos server configuration class.
+ * Can be used directly by passing DATA_ID in constructor.
  * 
  * @example
  * ```typescript
+ * // Simple usage (recommended)
+ * const config = new NacosServerConfig('app.activity');
+ * 
+ * // Legacy usage (still supported)
  * export class ActivityNacosConfig extends NacosServerConfig {
  *   protected DATA_ID = 'app.activity';
  * }
  * ```
  */
-export abstract class NacosServerConfig {
+export class NacosServerConfig {
   protected NAMESPACE = process.env.NACOS_NAMESPACE ?? 'dragon-dev';
-  protected abstract DATA_ID: string; // Must be defined by subclass
+  protected DATA_ID: string;
   protected readonly NAMING_DATA_ID = 'server.naming.table';
   protected GROUP = 'DEFAULT_GROUP';
   protected readonly SERVER_HOST = process.env.NACOS_HOST ?? 'dragon.fly';
@@ -19,4 +23,10 @@ export abstract class NacosServerConfig {
   protected USERNAME = process.env.NACOS_USERNAME ?? 'nacos';
   protected PASSWORD = process.env.NACOS_PASSWORD ?? 'nacos';
   protected TOKEN = '';
+
+  constructor(dataId?: string) {
+    if (dataId) {
+      this.DATA_ID = dataId;
+    }
+  }
 }
