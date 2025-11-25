@@ -1,27 +1,61 @@
 {
-  "compilerOptions": {
-    "module": "commonjs",
-    "declaration": true,
-    "removeComments": true,
-    "emitDecoratorMetadata": true,
-    "experimentalDecorators": true,
-    "allowSyntheticDefaultImports": true,
-    "target": "ES2021",
-    "sourceMap": true,
-    "outDir": "./dist",
-    "baseUrl": "./",
-    "incremental": true,
-    "skipLibCheck": true,
-    "strictNullChecks": false,
-    "noImplicitAny": false,
-    "strictBindCallApply": false,
-    "forceConsistentCasingInFileNames": false,
-    "noFallthroughCasesInSwitch": false,
-    "paths": {
-      "@dragon/common": ["src"],
-      "@dragon/common/*": ["src/*"]
-    }
-  },
-  "include": ["src/**/*"],
-  "exclude": ["node_modules", "dist"]
+    "compilerOptions": {
+        // 模块系统配置
+        "module": "commonjs",                           // 使用 CommonJS 模块系统（Node.js 标准）
+        "moduleResolution": "node",                     // 使用 Node.js 模块解析策略
+        "target": "ES2021",                             // 编译目标为 ES2021（支持现代 JS 特性，Node.js 14+）
+        
+        // 输出配置
+        "outDir": "./dist",                             // 编译输出目录
+        "declaration": true,                            // 生成 .d.ts 类型声明文件
+        "declarationMap": true,                         // 生成声明文件的 source map，便于调试
+        "sourceMap": true,                              // 生成 source map 文件，便于调试
+        "removeComments": true,                         // 移除注释以减小输出文件大小
+        
+        // 装饰器支持（NestJS 必需）
+        "emitDecoratorMetadata": true,                  // 为装饰器生成元数据（TypeORM/Mongoose 等依赖）
+        "experimentalDecorators": true,                 // 启用实验性装饰器特性
+        
+        // 类型检查配置
+        "strict": false,                                // 不启用所有严格类型检查（渐进式迁移）
+        "strictNullChecks": false,                      // 不严格检查 null 和 undefined
+        "noImplicitAny": false,                         // 允许隐式 any 类型
+        "strictBindCallApply": false,                   // 不严格检查 bind/call/apply
+        "strictFunctionTypes": false,                   // 不严格检查函数类型
+        "strictPropertyInitialization": false,          // 不要求类属性初始化
+        "noImplicitThis": false,                        // 允许隐式 this
+        
+        // 代码检查配置
+        "noUnusedLocals": false,                        // 不检查未使用的局部变量（开发阶段友好）
+        "noUnusedParameters": false,                    // 不检查未使用的参数
+        "noImplicitReturns": false,                     // 不要求所有代码路径都有返回值
+        "noFallthroughCasesInSwitch": false,            // 允许 switch case 穿透
+        "forceConsistentCasingInFileNames": true,       // 强制文件名大小写一致
+        
+        // 模块导入配置
+        "allowSyntheticDefaultImports": true,           // 允许从没有默认导出的模块中默认导入
+        "esModuleInterop": true,                        // 启用 ES 模块互操作性
+        "resolveJsonModule": true,                      // 允许导入 JSON 文件
+        
+        // 性能优化
+        "incremental": true,                            // 启用增量编译，加快重新编译速度
+        "skipLibCheck": true,                           // 跳过库文件的类型检查，加快编译速度
+        
+        // 路径映射配置
+        "baseUrl": "./",                                // 路径解析的基准目录
+        "paths": {
+            "@dragon/common": ["src"],
+            "@dragon/common/*": ["src/*"]
+        }
+    },
+    
+    // 包含和排除配置
+    "include": ["src/**/*"],                            // 包含 src 目录下的所有文件
+    "exclude": [                                        // 排除以下目录
+        "node_modules",                                 // 第三方依赖
+        "dist",                                         // 编译输出目录
+        "test",                                         // 测试文件
+        "**/*spec.ts",                                  // 单元测试文件
+        "**/*test.ts"                                   // 测试文件
+    ]
 }
