@@ -11,3 +11,15 @@ export * from './shared/redis/redis.service';
 
 // Kafka exports
 export * from './shared/kafka/kafka.module';
+
+// Decorators exports
+export * from './decorators';
+
+// Filters exports
+export * from './filters';
+
+// Utils exports
+export * from './utils';
+
+// Interfaces exports
+export * from './interfaces/jwt.interface';
