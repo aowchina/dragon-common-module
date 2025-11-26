@@ -51,9 +51,12 @@ export class NacosManager extends NacosServerConfig {
         if (typeof nacosConfig === 'string') {
             // Direct DATA_ID string
             configDataId = nacosConfig;
+            // Update DATA_ID so registerServer uses the correct service name
+            this.DATA_ID = configDataId;
         } else if (nacosConfig) {
             // NacosServerConfig instance
             configDataId = (nacosConfig as any).DATA_ID;
+            this.DATA_ID = configDataId;
         } else {
             // Fallback to default
             configDataId = this.DATA_ID;
