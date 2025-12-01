@@ -12,6 +12,12 @@ export * from './shared/redis/redis.service';
 // Kafka exports
 export * from './shared/kafka/kafka.module';
 
+// Cluster exports
+export * from './shared/cluster';
+
+// Graceful Shutdown exports
+export * from './shared/graceful-shutdown';
+
 // Decorators exports
 export * from './decorators';
 

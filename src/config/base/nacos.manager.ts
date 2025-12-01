@@ -1,6 +1,19 @@
 import { Logger } from '@nestjs/common';
 import { NacosServerConfig } from '../config.setup';
 import { Kafka2HttpConfig, NacosConfig } from './config.interface';
+import * as http from 'http';
+import * as crypto from 'crypto';
+import * as querystring from 'querystring';
+import * as os from 'os';
+
+type ConfigUpdateCallback = (config: any) => void;
+
+interface ConfigListenerInfo {
+    dataId: string;
+    group: string;
+    md5: string | null;
+    callbacks: ConfigUpdateCallback[];
+}
 
 export class NacosManager extends NacosServerConfig {
     protected DATA_ID = 'app.default'; // Default value, should be set by service
@@ -14,6 +27,10 @@ export class NacosManager extends NacosServerConfig {
     private _nacosNamespace: string;
     private _heartbeatTimer: NodeJS.Timeout | null = null;
     private _registeredInstances: Map<string, { ip: string; port: number }> = new Map();
+
+    // Config listener properties
+    private _configListeners: Map<string, ConfigListenerInfo> = new Map();
+    private _isListening: boolean = false;
 
     private constructor() {
         super();
@@ -47,7 +64,7 @@ export class NacosManager extends NacosServerConfig {
     // Can pass either a DATA_ID string or a NacosServerConfig subclass instance
     async setupNacosConfig(nacosConfig?: string | NacosServerConfig): Promise<NacosConfig | undefined> {
         let configDataId: string;
-        
+
         if (typeof nacosConfig === 'string') {
             // Direct DATA_ID string
             configDataId = nacosConfig;
@@ -61,7 +78,7 @@ export class NacosManager extends NacosServerConfig {
             // Fallback to default
             configDataId = this.DATA_ID;
         }
-        
+
         const config = await this.getConfig(configDataId, this.GROUP);
         if (config) {
             this._kafka2HttpConfig = config['useKafka2Http']
@@ -348,5 +365,262 @@ export class NacosManager extends NacosServerConfig {
         }
 
         return undefined;
+    }
+
+    /**
+     * 开始监听指定的 Nacos 配置变化（使用长轮询机制）
+     * @param dataId 配置的 dataId
+     * @param group 配置的 group（默认 'DEFAULT_GROUP'）
+     * @param callback 配置更新时的回调函数
+     */
+    startConfigListener(
+        dataId: string,
+        group: string = 'DEFAULT_GROUP',
+        callback: ConfigUpdateCallback
+    ): void {
+        const key = `${dataId}@${group}`;
+
+        if (!this._configListeners.has(key)) {
+            this._configListeners.set(key, {
+                dataId,
+                group,
+                md5: null,
+                callbacks: []
+            });
+        }
+
+        const listener = this._configListeners.get(key)!;
+        listener.callbacks.push(callback);
+
+        this._logger.log(`📡 Registered config listener for ${key}`);
+
+        // 如果还没有启动长轮询，则启动
+        if (!this._isListening) {
+            this._startLongPolling();
+        }
+    }
+
+    /**
+     * 停止监听指定的配置
+     * @param dataId 配置的 dataId
+     * @param group 配置的 group（默认 'DEFAULT_GROUP'）
+     * @param callback 要移除的回调函数（可选，不传则移除所有回调）
+     */
+    stopConfigListener(
+        dataId: string,
+        group: string = 'DEFAULT_GROUP',
+        callback?: ConfigUpdateCallback
+    ): void {
+        const key = `${dataId}@${group}`;
+        const listener = this._configListeners.get(key);
+
+        if (!listener) return;
+
+        if (callback) {
+            // 移除特定回调
+            listener.callbacks = listener.callbacks.filter(cb => cb !== callback);
+            if (listener.callbacks.length === 0) {
+                this._configListeners.delete(key);
+                this._logger.log(`🔌 Removed all callbacks for ${key}`);
+            }
+        } else {
+            // 移除所有回调
+            this._configListeners.delete(key);
+            this._logger.log(`🔌 Stopped listening to ${key}`);
+        }
+
+        // 如果没有监听器了，停止长轮询
+        if (this._configListeners.size === 0) {
+            this._isListening = false;
+            this._logger.log('⏸️  No active listeners, long polling stopped');
+        }
+    }
+
+    /**
+     * 启动 Nacos 长轮询机制
+     */
+    private async _startLongPolling(): Promise<void> {
+        this._isListening = true;
+        this._logger.log('🚀 Starting Nacos config long polling...');
+
+        // 首次获取所有配置的初始 MD5
+        for (const [key, listener] of this._configListeners) {
+            try {
+                const config = await this._fetchConfigWithMd5(listener.dataId, listener.group);
+                if (config) {
+                    listener.md5 = config.md5;
+                    this._logger.log(`✅ Initial MD5 for ${key}: ${config.md5}`);
+                }
+            } catch (error) {
+                this._logger.warn(`⚠️  Failed to get initial MD5 for ${key}:`, error.message);
+            }
+        }
+
+        // 启动长轮询循环
+        this._longPoll();
+    }
+
+    /**
+     * 执行长轮询请求
+     */
+    private _longPoll(): void {
+        if (!this._isListening || this._configListeners.size === 0) {
+            return;
+        }
+
+        // 构建 Listening-Configs 字符串
+        // 格式: dataId^2group^2tenant^2MD5^1dataId^2group^2tenant^2MD5^1...
+        const listeningConfigs = Array.from(this._configListeners.values())
+            .map(listener => {
+                const md5 = listener.md5 || '';
+                return `${listener.dataId}${String.fromCharCode(2)}${listener.group}${String.fromCharCode(2)}${this._nacosNamespace}${String.fromCharCode(2)}${md5}`;
+            })
+            .join(String.fromCharCode(1)) + String.fromCharCode(1);
+
+        const postData = querystring.stringify({
+            'Listening-Configs': listeningConfigs
+        });
+
+        const options: http.RequestOptions = {
+            hostname: this._nacosHost,
+            port: this._nacosPort,
+            path: '/nacos/v1/cs/configs/listener',
+            method: 'POST',
+            headers: {
+                'Long-Pulling-Timeout': '30000', // 30s server timeout
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'Content-Length': Buffer.byteLength(postData)
+            },
+            timeout: 35000 // 35s client timeout (longer than server)
+        };
+
+        const req = http.request(options, (res) => {
+            let data = '';
+
+            res.on('data', (chunk) => {
+                data += chunk;
+            });
+
+            res.on('end', async () => {
+                // 如果有数据返回，说明配置变化了
+                if (data && data.trim().length > 0) {
+                    this._logger.log(`📝 Config changes detected: ${data.trim()}`);
+
+                    // 解析变化的配置
+                    const changedConfigs = data.trim().split('\n').map(line => {
+                        const parts = line.split(String.fromCharCode(2));
+                        return {
+                            dataId: parts[0],
+                            group: parts[1] || 'DEFAULT_GROUP'
+                        };
+                    });
+
+                    // 获取变化的配置并通知回调
+                    for (const changed of changedConfigs) {
+                        const key = `${changed.dataId}@${changed.group}`;
+                        const listener = this._configListeners.get(key);
+
+                        if (listener) {
+                            try {
+                                const config = await this._fetchConfigWithMd5(changed.dataId, changed.group);
+                                if (config) {
+                                    listener.md5 = config.md5;
+                                    this._logger.log(`🔄 Config updated for ${key}, notifying ${listener.callbacks.length} callbacks`);
+
+                                    // 通知所有回调
+                                    listener.callbacks.forEach(callback => {
+                                        try {
+                                            callback(config.content);
+                                        } catch (error) {
+                                            this._logger.error(`❌ Error in config callback for ${key}:`, error);
+                                        }
+                                    });
+                                }
+                            } catch (error) {
+                                this._logger.error(`❌ Failed to fetch updated config for ${key}:`, error.message);
+                            }
+                        }
+                    }
+                }
+
+                // 继续下一轮长轮询
+                setImmediate(() => this._longPoll());
+            });
+        });
+
+        req.on('error', (error) => {
+            this._logger.error('❌ Long polling request error:', error.message);
+            // 5s 后重试
+            setTimeout(() => this._longPoll(), 5000);
+        });
+
+        req.on('timeout', () => {
+            this._logger.debug('⏱️  Long polling timeout (expected), reconnecting...');
+            req.destroy();
+            // 立即重连
+            setImmediate(() => this._longPoll());
+        });
+
+        req.write(postData);
+        req.end();
+    }
+
+    /**
+     * 获取配置内容和 MD5
+     */
+    private async _fetchConfigWithMd5(
+        dataId: string,
+        group: string
+    ): Promise<{ content: any; md5: string } | null> {
+        return new Promise((resolve, reject) => {
+            const path = `/nacos/v1/cs/configs?dataId=${encodeURIComponent(dataId)}&group=${encodeURIComponent(group)}&tenant=${encodeURIComponent(this._nacosNamespace)}`;
+
+            const options: http.RequestOptions = {
+                hostname: this._nacosHost,
+                port: this._nacosPort,
+                path: path,
+                method: 'GET',
+                timeout: 5000
+            };
+
+            const req = http.request(options, (res) => {
+                let data = '';
+
+                res.on('data', (chunk) => {
+                    data += chunk;
+                });
+
+                res.on('end', () => {
+                    if (res.statusCode === 200 && data) {
+                        try {
+                            const content = JSON.parse(data);
+                            const md5 = this._calculateMd5(data);
+                            resolve({ content, md5 });
+                        } catch (error) {
+                            reject(new Error(`Failed to parse config: ${error.message}`));
+                        }
+                    } else if (res.statusCode === 404) {
+                        resolve(null);
+                    } else {
+                        reject(new Error(`HTTP ${res.statusCode}`));
+                    }
+                });
+            });
+
+            req.on('error', reject);
+            req.on('timeout', () => {
+                req.destroy();
+                reject(new Error('Request timeout'));
+            });
+
+            req.end();
+        });
+    }
+
+    /**
+     * 计算字符串的 MD5 哈希值
+     */
+    private _calculateMd5(content: string): string {
+        return crypto.createHash('md5').update(content).digest('hex');
     }
 }
