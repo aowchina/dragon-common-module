@@ -478,12 +478,13 @@ export class NacosManager extends NacosServerConfig {
         }
 
         this._isPolling = true;        // 构建 Listening-Configs 字符串
-        // 格式: dataId^2group^2tenant^2MD5^1dataId^2group^2tenant^2MD5^1...
+        // 格式: dataId^2group^2MD5^1dataId^2group^2MD5^1...
+        // 注意: tenant/namespace 通过 URL 参数传递,不在 Listening-Configs 中
         const listeningConfigs = Array.from(this._configListeners.values())
             .map(listener => {
                 const md5 = listener.md5 || '';
                 this._logger.debug(`📋 Listener config: ${listener.dataId}, group: ${listener.group}, MD5: ${md5.substring(0, 12)}...`);
-                return `${listener.dataId}${String.fromCharCode(2)}${listener.group}${String.fromCharCode(2)}${this._nacosNamespace}${String.fromCharCode(2)}${md5}`;
+                return `${listener.dataId}${String.fromCharCode(2)}${listener.group}${String.fromCharCode(2)}${md5}`;
             })
             .join(String.fromCharCode(1)) + String.fromCharCode(1);
 
@@ -495,7 +496,7 @@ export class NacosManager extends NacosServerConfig {
         this._logger.debug(`📤 POST data (first 200 chars): ${postData.substring(0, 200)}`);        const options: http.RequestOptions = {
             hostname: this._nacosHost,
             port: this._nacosPort,
-            path: '/nacos/v1/cs/configs/listener',
+            path: `/nacos/v1/cs/configs/listener?tenant=${encodeURIComponent(this._nacosNamespace)}`,
             method: 'POST',
             headers: {
                 'Long-Pulling-Timeout': '30000', // 30s server timeout
