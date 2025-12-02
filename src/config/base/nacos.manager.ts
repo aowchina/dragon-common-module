@@ -2,7 +2,6 @@ import { Logger } from '@nestjs/common';
 import { NacosServerConfig } from '../config.setup';
 import { Kafka2HttpConfig, NacosConfig } from './config.interface';
 import * as http from 'http';
-import * as crypto from 'crypto';
 import * as querystring from 'querystring';
 import * as os from 'os';
 
@@ -620,16 +619,17 @@ export class NacosManager extends NacosServerConfig {
                     if (res.statusCode === 200 && data) {
                         try {
                             const content = JSON.parse(data);
-                            // 从响应头获取 MD5,如果没有则自己计算
-                            let headerMd5 = res.headers['content-md5'];
-                            if (Array.isArray(headerMd5)) {
-                                headerMd5 = headerMd5[0];
+                            // 直接从响应头获取 Nacos 服务器计算的 MD5
+                            let md5 = res.headers['content-md5'];
+                            if (Array.isArray(md5)) {
+                                md5 = md5[0];
                             }
 
-                            this._logger.debug(`📥 Response headers: ${JSON.stringify(res.headers)}`);
-                            const calculated = this._calculateMd5(data);
-                            const md5 = headerMd5 || calculated;
-                            this._logger.debug(`📥 Fetched config MD5: ${md5} (from ${headerMd5 ? 'header' : 'calculated'}), header=${headerMd5}, calculated=${calculated}`);
+                            if (!md5) {
+                                this._logger.warn(`⚠️  No content-md5 header from Nacos for ${dataId}`);
+                                md5 = ''; // 使用空字符串作为默认值
+                            }
+
                             resolve({ content, md5 });
                         } catch (error) {
                             reject(new Error(`Failed to parse config: ${error.message}`));
@@ -652,10 +652,4 @@ export class NacosManager extends NacosServerConfig {
         });
     }
 
-    /**
-     * 计算字符串的 MD5 哈希值
-     */
-    private _calculateMd5(content: string): string {
-        return crypto.createHash('md5').update(content).digest('hex');
-    }
 }
