@@ -488,13 +488,11 @@ export class NacosManager extends NacosServerConfig {
             })
             .join(String.fromCharCode(1)) + String.fromCharCode(1);
 
-        const postData = querystring.stringify({
-            'Listening-Configs': listeningConfigs
-        });
+        // 不能使用 querystring.stringify,因为它会对特殊字符进行 URL 编码
+        // Nacos 期望原始的 String.fromCharCode(1) 和 String.fromCharCode(2)
+        const postData = `Listening-Configs=${encodeURIComponent(listeningConfigs)}`;
 
-        this._logger.debug(`📤 Sending long polling request, postData length: ${postData.length}`);
-
-        const options: http.RequestOptions = {
+        this._logger.debug(`📤 Sending long polling request, configs count: ${this._configListeners.size}`);        const options: http.RequestOptions = {
             hostname: this._nacosHost,
             port: this._nacosPort,
             path: '/nacos/v1/cs/configs/listener',
