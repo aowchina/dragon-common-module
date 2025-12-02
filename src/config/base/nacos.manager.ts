@@ -464,7 +464,10 @@ export class NacosManager extends NacosServerConfig {
      * 执行长轮询请求
      */
     private _longPoll(): void {
+        this._logger.debug(`🔍 _longPoll called: isListening=${this._isListening}, listeners=${this._configListeners.size}`);
+        
         if (!this._isListening || this._configListeners.size === 0) {
+            this._logger.warn(`⚠️  Long polling skipped: isListening=${this._isListening}, listeners=${this._configListeners.size}`);
             return;
         }
 
