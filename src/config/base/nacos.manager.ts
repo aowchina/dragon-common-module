@@ -491,7 +491,8 @@ export class NacosManager extends NacosServerConfig {
         // Nacos 期望原始的 String.fromCharCode(1) 和 String.fromCharCode(2)
         const postData = `Listening-Configs=${encodeURIComponent(listeningConfigs)}`;
 
-        this._logger.debug(`📤 Sending long polling request, configs count: ${this._configListeners.size}`);        const options: http.RequestOptions = {
+        this._logger.debug(`📤 Sending long polling request, configs count: ${this._configListeners.size}`);
+        this._logger.debug(`📤 POST data (first 200 chars): ${postData.substring(0, 200)}`);        const options: http.RequestOptions = {
             hostname: this._nacosHost,
             port: this._nacosPort,
             path: '/nacos/v1/cs/configs/listener',
