@@ -466,7 +466,7 @@ export class NacosManager extends NacosServerConfig {
      */
     private _longPoll(): void {
         this._logger.debug(`🔍 _longPoll called: isListening=${this._isListening}, isPolling=${this._isPolling}, listeners=${this._configListeners.size}`);
-        
+
         if (!this._isListening || this._configListeners.size === 0) {
             this._logger.warn(`⚠️  Long polling skipped: isListening=${this._isListening}, listeners=${this._configListeners.size}`);
             return;
@@ -477,7 +477,7 @@ export class NacosManager extends NacosServerConfig {
             this._logger.warn(`⚠️  Long polling already in progress, skipping duplicate call`);
             return;
         }
-        
+
         this._isPolling = true;        // 构建 Listening-Configs 字符串
         // 格式: dataId^2group^2tenant^2MD5^1dataId^2group^2tenant^2MD5^1...
         const listeningConfigs = Array.from(this._configListeners.values())
@@ -512,10 +512,11 @@ export class NacosManager extends NacosServerConfig {
             });
 
             res.on('end', async () => {
-                this._logger.debug(`📨 Long polling response end: ${data.length} bytes, status: ${res.statusCode}`);
-                
+                this._logger.debug(`📨 Long polling response end: ${data.length} bytes, status: ${res.statusCode}, data: "${data}"`);
+
                 // 如果有数据返回，说明配置可能变化了
                 if (data && data.trim().length > 0) {
+                    this._logger.debug(`📦 Nacos reported config changes: ${data.trim()}`);
                     // 解析可能变化的配置
                     const changedConfigs = data.trim().split('\n').map(line => {
                         const parts = line.split(String.fromCharCode(2));
