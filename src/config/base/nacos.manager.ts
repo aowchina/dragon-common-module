@@ -478,13 +478,14 @@ export class NacosManager extends NacosServerConfig {
         }
 
         this._isPolling = true;        // 构建 Listening-Configs 字符串
-        // 格式: dataId^2group^2MD5^1dataId^2group^2MD5^1...
-        // 注意: tenant/namespace 通过 URL 参数传递,不在 Listening-Configs 中
+        // 根据 Nacos 源码 MD5Util.getClientMd5Map:
+        // 新格式(带 tenant): dataId^2group^2md5^2tenant^1
+        // 旧格式(不带 tenant): dataId^2group^2md5^1
         const listeningConfigs = Array.from(this._configListeners.values())
             .map(listener => {
                 const md5 = listener.md5 || '';
-                this._logger.debug(`📋 Listener config: ${listener.dataId}, group: ${listener.group}, MD5: ${md5.substring(0, 12)}...`);
-                return `${listener.dataId}${String.fromCharCode(2)}${listener.group}${String.fromCharCode(2)}${md5}`;
+                this._logger.debug(`📋 Sending listener: ${listener.dataId}, group: ${listener.group}, MD5: ${md5.substring(0, 8)}..., tenant: ${this._nacosNamespace}`);
+                return `${listener.dataId}${String.fromCharCode(2)}${listener.group}${String.fromCharCode(2)}${md5}${String.fromCharCode(2)}${this._nacosNamespace}`;
             })
             .join(String.fromCharCode(1)) + String.fromCharCode(1);
 
@@ -496,7 +497,7 @@ export class NacosManager extends NacosServerConfig {
         this._logger.debug(`📤 POST data (first 200 chars): ${postData.substring(0, 200)}`);        const options: http.RequestOptions = {
             hostname: this._nacosHost,
             port: this._nacosPort,
-            path: `/nacos/v1/cs/configs/listener?tenant=${encodeURIComponent(this._nacosNamespace)}`,
+            path: '/nacos/v1/cs/configs/listener',
             method: 'POST',
             headers: {
                 'Long-Pulling-Timeout': '30000', // 30s server timeout
@@ -522,8 +523,9 @@ export class NacosManager extends NacosServerConfig {
                     // 解析可能变化的配置 (Nacos 返回的是 URL 编码的数据,需要先解码)
                     const changedConfigs = data.trim().split('\n').map(line => {
                         const decodedLine = decodeURIComponent(line);
+                        this._logger.debug(`📑 Decoded line: "${decodedLine}" (length=${decodedLine.length})`);
                         const parts = decodedLine.split(String.fromCharCode(2));
-                        this._logger.debug(`📑 Parsed change: dataId=${parts[0]}, group=${parts[1]}, md5=${parts[2]}`);
+                        this._logger.debug(`📑 Parsed ${parts.length} parts: dataId=${parts[0]}, group=${parts[1]}, part3=${parts[2]}`);
                         return {
                             dataId: parts[0],
                             group: parts[1] || 'DEFAULT_GROUP'
