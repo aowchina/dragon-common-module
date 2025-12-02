@@ -625,8 +625,11 @@ export class NacosManager extends NacosServerConfig {
                             if (Array.isArray(headerMd5)) {
                                 headerMd5 = headerMd5[0];
                             }
-                            const md5 = headerMd5 || this._calculateMd5(data);
-                            this._logger.debug(`📥 Fetched config MD5: ${md5} (from ${headerMd5 ? 'header' : 'calculated'})`);
+
+                            this._logger.debug(`📥 Response headers: ${JSON.stringify(res.headers)}`);
+                            const calculated = this._calculateMd5(data);
+                            const md5 = headerMd5 || calculated;
+                            this._logger.debug(`📥 Fetched config MD5: ${md5} (from ${headerMd5 ? 'header' : 'calculated'}), header=${headerMd5}, calculated=${calculated}`);
                             resolve({ content, md5 });
                         } catch (error) {
                             reject(new Error(`Failed to parse config: ${error.message}`));
