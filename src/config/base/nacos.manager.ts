@@ -31,6 +31,7 @@ export class NacosManager extends NacosServerConfig {
     // Config listener properties
     private _configListeners: Map<string, ConfigListenerInfo> = new Map();
     private _isListening: boolean = false;
+    private _isPolling: boolean = false; // 防止重复轮询
 
     private constructor() {
         super();
@@ -464,14 +465,20 @@ export class NacosManager extends NacosServerConfig {
      * 执行长轮询请求
      */
     private _longPoll(): void {
-        this._logger.debug(`🔍 _longPoll called: isListening=${this._isListening}, listeners=${this._configListeners.size}`);
+        this._logger.debug(`🔍 _longPoll called: isListening=${this._isListening}, isPolling=${this._isPolling}, listeners=${this._configListeners.size}`);
         
         if (!this._isListening || this._configListeners.size === 0) {
             this._logger.warn(`⚠️  Long polling skipped: isListening=${this._isListening}, listeners=${this._configListeners.size}`);
             return;
         }
 
-        // 构建 Listening-Configs 字符串
+        // 防止重复轮询
+        if (this._isPolling) {
+            this._logger.warn(`⚠️  Long polling already in progress, skipping duplicate call`);
+            return;
+        }
+        
+        this._isPolling = true;        // 构建 Listening-Configs 字符串
         // 格式: dataId^2group^2tenant^2MD5^1dataId^2group^2tenant^2MD5^1...
         const listeningConfigs = Array.from(this._configListeners.values())
             .map(listener => {
@@ -505,6 +512,8 @@ export class NacosManager extends NacosServerConfig {
             });
 
             res.on('end', async () => {
+                this._logger.debug(`📨 Long polling response end: ${data.length} bytes, status: ${res.statusCode}`);
+                
                 // 如果有数据返回，说明配置可能变化了
                 if (data && data.trim().length > 0) {
                     // 解析可能变化的配置
@@ -553,12 +562,15 @@ export class NacosManager extends NacosServerConfig {
                 }
 
                 // 继续下一轮长轮询
+                this._logger.debug('♻️  Long polling cycle complete, starting next poll...');
+                this._isPolling = false;
                 setImmediate(() => this._longPoll());
             });
         });
 
         req.on('error', (error) => {
             this._logger.error('❌ Long polling request error:', error.message);
+            this._isPolling = false;
             // 5s 后重试
             setTimeout(() => this._longPoll(), 5000);
         });
@@ -566,6 +578,7 @@ export class NacosManager extends NacosServerConfig {
         req.on('timeout', () => {
             this._logger.debug('⏱️  Long polling timeout (expected), reconnecting...');
             req.destroy();
+            this._isPolling = false;
             // 立即重连
             setImmediate(() => this._longPoll());
         });
