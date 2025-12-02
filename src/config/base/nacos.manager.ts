@@ -502,11 +502,9 @@ export class NacosManager extends NacosServerConfig {
             });
 
             res.on('end', async () => {
-                // 如果有数据返回，说明配置变化了
+                // 如果有数据返回，说明配置可能变化了
                 if (data && data.trim().length > 0) {
-                    this._logger.log(`📝 Config changes detected: ${data.trim()}`);
-
-                    // 解析变化的配置
+                    // 解析可能变化的配置
                     const changedConfigs = data.trim().split('\n').map(line => {
                         const parts = line.split(String.fromCharCode(2));
                         return {
@@ -524,17 +522,25 @@ export class NacosManager extends NacosServerConfig {
                             try {
                                 const config = await this._fetchConfigWithMd5(changed.dataId, changed.group);
                                 if (config) {
-                                    listener.md5 = config.md5;
-                                    this._logger.log(`🔄 Config updated for ${key}, notifying ${listener.callbacks.length} callbacks`);
+                                    // 只有 MD5 真正变化时才更新和通知
+                                    if (config.md5 !== listener.md5) {
+                                        const oldMd5 = listener.md5;
+                                        listener.md5 = config.md5;
+                                        this._logger.log(`📝 Config content changed for ${key} (MD5: ${oldMd5?.substring(0, 8)} → ${config.md5.substring(0, 8)})`);
+                                        this._logger.log(`🔄 Notifying ${listener.callbacks.length} callbacks`);
 
-                                    // 通知所有回调
-                                    listener.callbacks.forEach(callback => {
-                                        try {
-                                            callback(config.content);
-                                        } catch (error) {
-                                            this._logger.error(`❌ Error in config callback for ${key}:`, error);
-                                        }
-                                    });
+                                        // 通知所有回调
+                                        listener.callbacks.forEach(callback => {
+                                            try {
+                                                callback(config.content);
+                                            } catch (error) {
+                                                this._logger.error(`❌ Error in config callback for ${key}:`, error);
+                                            }
+                                        });
+                                    } else {
+                                        // MD5 未变化，只是 Nacos 心跳通知，不打印日志
+                                        this._logger.debug(`⏭️  Config heartbeat for ${key}, no content change (MD5: ${config.md5.substring(0, 8)})`);
+                                    }
                                 }
                             } catch (error) {
                                 this._logger.error(`❌ Failed to fetch updated config for ${key}:`, error.message);
