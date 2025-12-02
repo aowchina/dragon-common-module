@@ -483,6 +483,7 @@ export class NacosManager extends NacosServerConfig {
         const listeningConfigs = Array.from(this._configListeners.values())
             .map(listener => {
                 const md5 = listener.md5 || '';
+                this._logger.debug(`📋 Listener config: ${listener.dataId}, group: ${listener.group}, MD5: ${md5.substring(0, 12)}...`);
                 return `${listener.dataId}${String.fromCharCode(2)}${listener.group}${String.fromCharCode(2)}${this._nacosNamespace}${String.fromCharCode(2)}${md5}`;
             })
             .join(String.fromCharCode(1)) + String.fromCharCode(1);
@@ -490,6 +491,8 @@ export class NacosManager extends NacosServerConfig {
         const postData = querystring.stringify({
             'Listening-Configs': listeningConfigs
         });
+
+        this._logger.debug(`📤 Sending long polling request, postData length: ${postData.length}`);
 
         const options: http.RequestOptions = {
             hostname: this._nacosHost,
@@ -517,9 +520,11 @@ export class NacosManager extends NacosServerConfig {
                 // 如果有数据返回，说明配置可能变化了
                 if (data && data.trim().length > 0) {
                     this._logger.debug(`📦 Nacos reported config changes: ${data.trim()}`);
-                    // 解析可能变化的配置
+                    // 解析可能变化的配置 (Nacos 返回的是 URL 编码的数据,需要先解码)
                     const changedConfigs = data.trim().split('\n').map(line => {
-                        const parts = line.split(String.fromCharCode(2));
+                        const decodedLine = decodeURIComponent(line);
+                        const parts = decodedLine.split(String.fromCharCode(2));
+                        this._logger.debug(`📑 Parsed change: dataId=${parts[0]}, group=${parts[1]}, md5=${parts[2]}`);
                         return {
                             dataId: parts[0],
                             group: parts[1] || 'DEFAULT_GROUP'
@@ -617,7 +622,13 @@ export class NacosManager extends NacosServerConfig {
                     if (res.statusCode === 200 && data) {
                         try {
                             const content = JSON.parse(data);
-                            const md5 = this._calculateMd5(data);
+                            // 从响应头获取 MD5,如果没有则自己计算
+                            let headerMd5 = res.headers['content-md5'];
+                            if (Array.isArray(headerMd5)) {
+                                headerMd5 = headerMd5[0];
+                            }
+                            const md5 = headerMd5 || this._calculateMd5(data);
+                            this._logger.debug(`📥 Fetched config MD5: ${md5} (from ${headerMd5 ? 'header' : 'calculated'})`);
                             resolve({ content, md5 });
                         } catch (error) {
                             reject(new Error(`Failed to parse config: ${error.message}`));
