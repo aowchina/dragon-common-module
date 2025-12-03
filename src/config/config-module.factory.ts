@@ -16,10 +16,10 @@ export interface ConfigModuleOptions<T extends BaseConfigService = BaseConfigSer
     nacosGroup?: string;
 
     /**
-     * Local config filename, e.g. 'config.default.json'
-     * Will be searched in the same directory as the compiled module
+     * Absolute path to local config file, e.g. path.join(__dirname, 'config.default.json')
+     * If file exists, it will be used instead of Nacos
      */
-    localConfigFile?: string;
+    localConfigPath?: string;
 
     /**
      * ConfigService class to instantiate
@@ -51,7 +51,7 @@ export function createConfigServiceProvider<T extends BaseConfigService>(
     const {
         nacosDataId,
         nacosGroup = 'DEFAULT_GROUP',
-        localConfigFile,
+        localConfigPath,
         configServiceClass,
         moduleName,
         enableNacosListener = true,
@@ -65,17 +65,14 @@ export function createConfigServiceProvider<T extends BaseConfigService>(
             let useLocalConfig = false;
 
             // 1. 优先尝试加载本地配置文件
-            if (localConfigFile) {
-                const localConfigPath = path.join(__dirname, '..', localConfigFile);
-                if (fs.existsSync(localConfigPath)) {
-                    try {
-                        const localConfigContent = fs.readFileSync(localConfigPath, 'utf-8');
-                        config = JSON.parse(localConfigContent);
-                        useLocalConfig = true;
-                        logger.log(`✅ Using local config file: ${localConfigFile}`);
-                    } catch (e) {
-                        logger.warn(`Failed to load local config file ${localConfigFile}:`, e.message);
-                    }
+            if (localConfigPath && fs.existsSync(localConfigPath)) {
+                try {
+                    const localConfigContent = fs.readFileSync(localConfigPath, 'utf-8');
+                    config = JSON.parse(localConfigContent);
+                    useLocalConfig = true;
+                    logger.log(`✅ Using local config file: ${localConfigPath}`);
+                } catch (e) {
+                    logger.warn(`Failed to load local config file ${localConfigPath}:`, e.message);
                 }
             }
 
