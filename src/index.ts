@@ -3,6 +3,7 @@ export * from './config/config.setup';
 export * from './config/base/nacos.manager';
 export * from './config/base/baseconfig.service';
 export * from './config/base/config.interface';
+export * from './config/config-module.factory';
 export { ConfigService, BaseConfigService } from './config/config.service';
 
 // Redis exports
