@@ -656,4 +656,20 @@ export class NacosManager extends NacosServerConfig {
         });
     }
 
+    /**
+     * Register service to Nacos with simplified API
+     * @param port Service port number
+     * @param logger Optional logger instance
+     * @returns Promise<void>
+     */
+    static async registerToNacos(port: number, logger?: Logger): Promise<void> {
+        const log = logger || new Logger('NacosRegister');
+        try {
+            await NacosManager.Instance.registerServer(port);
+            log.log('✅ Registered to Nacos successfully');
+        } catch (error) {
+            log.warn('⚠️  Failed to register to Nacos:', error.message);
+        }
+    }
+
 }
