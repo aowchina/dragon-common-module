@@ -2,83 +2,111 @@ import { Logger } from '@nestjs/common';
 import * as _ from 'lodash';
 import { NacosConfig } from './config.interface';
 
-enum NodeEnvEnum {
-  dev = 'development',
-  pro = 'production',
-}
-
 export abstract class BaseConfigService {
-  logger = new Logger(BaseConfigService.name);
-  protected readonly env: string;
-  constructor(protected nacosConfigs?: NacosConfig) {
-    if (process.env.NODE_ENV) {
-      this.env = process.env.NODE_ENV;
-    } else {
-      this.env = NodeEnvEnum.dev;
-    }
-
-    const confDefault = this.getDefaultConf();
-    if (this.nacosConfigs) {
-      _.merge(this.nacosConfigs, confDefault);
-    } else {
-      this.nacosConfigs = confDefault;
-    }
-
-    this.evalFunc(this.nacosConfigs);
-  }
-
-  get isDevelopment(): boolean {
-    return this.env === NodeEnvEnum.dev;
-  }
-
-  get isProduction(): boolean {
-    return this.env === NodeEnvEnum.pro;
-  }
-
-  getServiceConfig() {
-    /* TODO document why this method 'getServiceConfig' is empty */
-  }
-
-  getOneConfig(key: string) {
-    if (this.nacosConfigs && this.nacosConfigs[key]) {
-      return this.nacosConfigs[key];
-    }
-  }
-
-  private getDefaultConf() {
-    let confDefault = null;
-    try {
-      confDefault = require('../config.default.json');
-    } catch (e) {
-      if (e.message.search('Cannot find module') == 0) {
-        this.logger.log('Local config.default.json not exist, try to nacos');
-      } else {
-        this.logger.log('Try to get local config.default.json failed', e);
-      }
-    }
-    return confDefault;
-  }
-
-  // 执行配置文件里的动态函数
-  private evalFunc(confg: NacosConfig) {
-    this.loopObject(confg);
-  }
-
-  private loopObject(obj: NacosConfig) {
-    for (const key in obj) {
-      if (typeof obj[key] == 'object') {
-        this.loopObject(obj[key]);
-      } else if (typeof obj[key] == 'string') {
-        let value = obj[key];
-        const matches = value.match(/\{{.*?\}}/gi);
-        if (matches) {
-          for (const element of matches) {
-            const func = element.substr(2, element.length - 4);
-            value = value.replace(element, eval(func));
-          }
-          obj[key] = value;
+    logger = new Logger(BaseConfigService.name);
+    protected readonly env: string;
+    constructor(protected nacosConfigs?: NacosConfig) {
+        if (process.env.NODE_ENV) {
+            this.env = process.env.NODE_ENV;
+        } else {
+            this.env = 'development';
         }
-      }
+
+        const confDefault = this.getDefaultConf();
+        if (this.nacosConfigs) {
+            _.merge(this.nacosConfigs, confDefault);
+        } else {
+            this.nacosConfigs = confDefault;
+        }
+
+        this.evalFunc(this.nacosConfigs);
     }
-  }
+
+    get isDevelopment(): boolean {
+        return this.env === 'development';
+    }
+
+    get isProduction(): boolean {
+        return this.env === 'production';
+    }
+
+    getServiceConfig() {
+        /* TODO document why this method 'getServiceConfig' is empty */
+    }
+
+    getOneConfig(key: string) {
+        if (this.nacosConfigs && this.nacosConfigs[key]) {
+            return this.nacosConfigs[key];
+        }
+    }
+
+    private getDefaultConf() {
+        let confDefault = null;
+        try {
+            confDefault = require('../config.default.json');
+        } catch (e) {
+            if (e.message.search('Cannot find module') == 0) {
+                this.logger.log('Local config.default.json not exist, try to nacos');
+            } else {
+                this.logger.log('Try to get local config.default.json failed', e);
+            }
+        }
+        return confDefault;
+    }
+
+    // 执行配置文件里的动态函数
+    private evalFunc(confg: NacosConfig) {
+        this.loopObject(confg);
+    }
+
+    private loopObject(obj: NacosConfig) {
+        for (const key in obj) {
+            if (typeof obj[key] == 'object') {
+                this.loopObject(obj[key]);
+            } else if (typeof obj[key] == 'string') {
+                obj[key] = this.evaluateTemplate(obj[key]);
+            }
+        }
+    }
+
+    /**
+     * 安全的模板求值（替代 eval）
+     * 支持的表达式：
+     * - {{process.env.XXX}}
+     * - {{process.env.XXX || 'default'}}
+     * - {{env.XXX}}
+     */
+    private evaluateTemplate(value: string): string {
+        const templateRegex = /\{\{(.*?)\}\}/g;
+        return value.replace(templateRegex, (match, expression) => {
+            return this.evaluateExpression(expression.trim());
+        });
+    }
+
+    /**
+     * 白名单表达式求值
+     */
+    private evaluateExpression(expr: string): string {
+        // 支持 process.env.XXX
+        const envMatch = expr.match(/^process\.env\.(\w+)$/);
+        if (envMatch) {
+            return process.env[envMatch[1]] || '';
+        }
+
+        // 支持 process.env.XXX || 'default'
+        const envWithDefaultMatch = expr.match(/^process\.env\.(\w+)\s*\|\|\s*['"](.+?)['"]$/);
+        if (envWithDefaultMatch) {
+            return process.env[envWithDefaultMatch[1]] || envWithDefaultMatch[2];
+        }
+
+        // 支持环境变量简写 {{env.XXX}}
+        const envShortMatch = expr.match(/^env\.(\w+)$/);
+        if (envShortMatch) {
+            return process.env[envShortMatch[1]] || '';
+        }
+
+        // 不支持的表达式，保持原样
+        this.logger.warn(`Unsupported template expression: ${expr}`);
+        return `{{${expr}}}`;
+    }
 }

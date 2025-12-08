@@ -1,0 +1,65 @@
+{
+    "server": {
+        "swaggerPrefix": "api",
+        "apiPrefix": "api",
+        "port": 9901
+    },
+    "redis": {
+        "host": "redis",
+        "password": "jfd8vzjf65grqa",
+        "port": 6379,
+        "family": 4,
+        "db": 0
+    },
+    "db": {
+        "type": "mysql",
+        "host": "mysql",
+        "port": 3306,
+        "username": "root",
+        "password": "dkjfd89651jdha",
+        "database": "dragon_games",
+        "charset": "utf8mb4",
+        "synchronize": false,
+        "migrationsRun": false,
+        "entities": [
+            "{{__dirname + '/../..' + '/**/*.entity{.ts,.js}'}}"
+        ],
+        "logging": "all",
+        "logger": "simple-console",
+        "maxQueryExecutionTime": 500
+    },
+    "encrypt": {
+        "key": "981b59bf91adff1df432967d4ce6d2ae",
+        "iv": "bf91adff1df43296",
+        "algorithm": "aes-256-cbc"
+    },
+    "service": {
+        "options": {
+            "client": {
+                "clientId": "game_service_main",
+                "brokers": ["kafka:9092"]
+            },
+            "consumer": {
+                "groupId": "game_service_group"
+            }
+        }
+    },
+    "kafka": {
+        "options": {
+            "client": {
+                "clientId": "game_client",
+                "brokers": ["kafka:9092"]
+            },
+            "consumer": {
+                "groupId": "game_consumer_group",
+                "allowAutoTopicCreation": true
+            }
+        },
+        "subscribeTopics": ["wallet", "auth", "user", "profile"]
+    },
+    "wallet": {
+        "baseUrl": "http://dragon-wallet:3001/wallet",
+        "timeout": 5000,
+        "retryAttempts": 3
+    }
+}

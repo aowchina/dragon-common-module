@@ -42,6 +42,9 @@ importers:
       '@types/node':
         specifier: ^24.10.0
         version: 24.10.1
+      prettier:
+        specifier: ^3.7.4
+        version: 3.7.4
       rimraf:
         specifier: ^6.1.0
         version: 6.1.2
@@ -499,6 +502,11 @@ packages:
   possible-typed-array-names@1.1.0:
     resolution: {integrity: sha512-/+5VFTchJDoVj3bhoqi6UeymcD00DAwb1nJwamzPvHEszJ4FpF6SNNbUbOS8yI56qHzdV8eK0qEfOSiodkTdxg==}
     engines: {node: '>= 0.4'}
+
+  prettier@3.7.4:
+    resolution: {integrity: sha512-v6UNi1+3hSlVvv8fSaoUbggEM5VErKmmpGA7Pl3HF8V6uKY7rvClBOJlH6yNwQtfTueNkGVpOv/mtWL9L4bgRA==}
+    engines: {node: '>=14'}
+    hasBin: true
 
   proxy-from-env@1.1.0:
     resolution: {integrity: sha512-D+zkORCbA9f1tdWRK0RaCR3GPv50cMxcrz4X8k5LTSUD1Dkw47mKJEZQNunItRTkWwgtaUSo1RVFRIG9ZXiFYg==}
@@ -1090,6 +1098,8 @@ snapshots:
   path-to-regexp@8.3.0: {}
 
   possible-typed-array-names@1.1.0: {}
+
+  prettier@3.7.4: {}
 
   proxy-from-env@1.1.0: {}
 

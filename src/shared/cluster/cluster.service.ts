@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import cluster from 'node:cluster';
-import * as os from 'node:os'
+import * as os from 'node:os';
 
 // Define main function type for cluster bootstrap
 export type ClusterBootstrapFunction = (enableCluster: boolean | string, isPrimary: boolean) => void | Promise<void>;
@@ -22,7 +22,7 @@ export class ClusterService {
         },
     ): void {
         const numberWorkers = options?.workers || Number(process.env.CLUSTER_WORKER ?? os.cpus().length);
-        const enableCluster = options?.enable ?? (process.env.CLUSTER_ENABLE ?? false);
+        const enableCluster = options?.enable ?? process.env.CLUSTER_ENABLE ?? false;
 
         if (!enableCluster) {
             this.logger.debug(`Single server started on ${process.pid}`);

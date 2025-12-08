@@ -8,7 +8,11 @@ const md5 = (data: string, inputEncoding: crypto.Encoding = 'utf-8', encoding: c
     return hash.update(data, inputEncoding).digest(encoding);
 };
 
-const sha1 = (data: string, inputEncoding: crypto.Encoding = 'utf-8', encoding: crypto.BinaryToTextEncoding = 'hex') => {
+const sha1 = (
+    data: string,
+    inputEncoding: crypto.Encoding = 'utf-8',
+    encoding: crypto.BinaryToTextEncoding = 'hex',
+) => {
     if (!data) {
         return '';
     }

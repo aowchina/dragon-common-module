@@ -45,9 +45,7 @@ export interface ConfigModuleOptions<T extends BaseConfigService = BaseConfigSer
  * 2. Falls back to Nacos remote config
  * 3. Optionally starts Nacos listener for dynamic updates
  */
-export function createConfigServiceProvider<T extends BaseConfigService>(
-    options: ConfigModuleOptions<T>
-) {
+export function createConfigServiceProvider<T extends BaseConfigService>(options: ConfigModuleOptions<T>) {
     const {
         nacosDataId,
         nacosGroup = 'DEFAULT_GROUP',
@@ -92,17 +90,16 @@ export function createConfigServiceProvider<T extends BaseConfigService>(
             // 3. 只有当使用 Nacos 配置且启用监听时，才启动配置监听
             if (!useLocalConfig && enableNacosListener) {
                 try {
-                    NacosManager.Instance.startConfigListener(
-                        nacosDataId,
-                        nacosGroup,
-                        (newConfig) => {
-                            if ('updateConfig' in configService && typeof (configService as any).updateConfig === 'function') {
-                                (configService as any).updateConfig(newConfig);
-                            } else {
-                                logger.warn('ConfigService does not implement updateConfig method');
-                            }
+                    NacosManager.Instance.startConfigListener(nacosDataId, nacosGroup, (newConfig) => {
+                        if (
+                            'updateConfig' in configService &&
+                            typeof (configService as any).updateConfig === 'function'
+                        ) {
+                            (configService as any).updateConfig(newConfig);
+                        } else {
+                            logger.warn('ConfigService does not implement updateConfig method');
                         }
-                    );
+                    });
                     logger.log('✅ Started Nacos config listener for dynamic updates');
                 } catch (e) {
                     logger.warn('Failed to start Nacos config listener:', e.message);

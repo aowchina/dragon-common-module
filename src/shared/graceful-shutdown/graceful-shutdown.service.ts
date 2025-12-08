@@ -9,11 +9,7 @@ export class GracefulShutdownService {
      * @param timeoutMs - Shutdown timeout in milliseconds (default: 10000ms)
      * @param logger - Optional custom logger
      */
-    static setup(
-        app: INestApplication,
-        timeoutMs: number = 10000,
-        logger?: Logger,
-    ): void {
+    static setup(app: INestApplication, timeoutMs: number = 10000, logger?: Logger): void {
         const log = logger || new Logger('GracefulShutdown');
 
         const shutdown = async (signal: string) => {
