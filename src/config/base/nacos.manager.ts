@@ -425,8 +425,8 @@ export class NacosManager extends NacosServerConfig {
     }
 
     async findServerByTopic(topic: string): Promise<string | undefined> {
-        if (this._kafka2HttpConfig?.registry[topic]) {
-            return await this.findServerByName(this._kafka2HttpConfig.registry[topic]);
+        if (this._kafka2HttpConfig?.[topic]) {
+            return await this.findServerByName(this._kafka2HttpConfig[topic]);
         }
     }
 
