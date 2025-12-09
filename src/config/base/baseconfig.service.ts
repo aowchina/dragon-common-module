@@ -105,7 +105,20 @@ export abstract class BaseConfigService {
             return process.env[envShortMatch[1]] || '';
         }
 
-        // 不支持的表达式，保持原样
+        // 支持 Math.random() 生成随机字符串
+        const randomMatch = expr.match(/^Math\.random\(\)\.toString\((\d+)\)\.substring\((\d+)\)$/);
+        if (randomMatch) {
+            return Math.random().toString(parseInt(randomMatch[1])).substring(parseInt(randomMatch[2]));
+        }
+
+        // __dirname 表达式：保持原样，由服务代码在运行时处理
+        // 因为 __dirname 需要在服务上下文中求值，而不是在 dragon-common-module 中
+        if (expr.includes('__dirname')) {
+            // 静默处理，不输出警告（这是预期行为）
+            return `{{${expr}}}`;
+        }
+
+        // 不支持的表达式，保持原样并警告
         this.logger.warn(`Unsupported template expression: ${expr}`);
         return `{{${expr}}}`;
     }
