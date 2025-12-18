@@ -8,6 +8,9 @@ export * from './config/base/config-encryptor';
 export * from './config/config-module.factory';
 export { ConfigService, BaseConfigService } from './config/config.service';
 
+// Auth exports
+export * from './shared/auth';
+
 // Redis exports
 export * from './shared/redis/redis.module';
 export * from './shared/redis/redis.service';
