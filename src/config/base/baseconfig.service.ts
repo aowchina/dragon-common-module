@@ -8,13 +8,19 @@ import { BaseConfig } from './base.config';
  * 定义 server 配置的基本结构
  * 只定义 AuthService 需要的最小接口
  */
-export interface IServerConfig extends BaseConfig {
+export class BaseServerConfig extends BaseConfig {
     port: number;
     api?: {
         prefix?: string;
         allow_origins?: string[];
         [key: string]: any;
-    },
+    };
+    token?: {
+        name?: string;
+        secret?: string;
+        expiresIn?: number;
+        [key: string]: any;
+    };
     services?: {
         auth?: string;
         [key: string]: any;
@@ -30,7 +36,7 @@ export abstract class BaseConfigService {
      * Server 配置
      * 子类必须实现此属性以提供 server 配置访问
      */
-    protected abstract server: IServerConfig;
+    protected abstract server: BaseServerConfig;
 
     constructor(protected nacosConfigs?: NacosConfig) {
         if (process.env.NODE_ENV) {
@@ -61,7 +67,7 @@ export abstract class BaseConfigService {
         /* TODO document why this method 'getServiceConfig' is empty */
     }
 
-    getServerConfig(): IServerConfig {
+    getServerConfig(): BaseServerConfig {
         return this.server;
     }
 

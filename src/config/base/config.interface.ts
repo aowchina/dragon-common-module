@@ -1,5 +1,5 @@
 import { BaseConfig } from "./base.config";
-import { IServerConfig } from "./baseconfig.service";
+import { BaseServerConfig } from "./baseconfig.service";
 
 // 环境变量的结构体
 export interface NacosConfig extends BaseConfig{
@@ -8,7 +8,7 @@ export interface NacosConfig extends BaseConfig{
     kafka: KafkaConfig;
     service: ServiceConfig;
     mongo: MongoConfig;
-    server: IServerConfig;
+    server: BaseServerConfig;
     bti: BtiConfig;
     admin: AdminConfig;
 }

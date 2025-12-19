@@ -1,4 +1,4 @@
-import { BaseConfigService, IServerConfig } from './base/baseconfig.service';
+import { BaseConfigService, BaseServerConfig } from './base/baseconfig.service';
 import { NacosConfig } from './base/config.interface';
 
 /**
@@ -25,7 +25,7 @@ import { NacosConfig } from './base/config.interface';
  * ```
  */
 export class ConfigService extends BaseConfigService {
-    readonly server: IServerConfig;
+    readonly server: BaseServerConfig;
 
     constructor(nacosConfigs?: NacosConfig) {
         super(nacosConfigs);
