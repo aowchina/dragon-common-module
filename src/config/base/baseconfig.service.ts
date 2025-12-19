@@ -1,10 +1,35 @@
 import { Logger } from '@nestjs/common';
 import * as _ from 'lodash';
 import { NacosConfig } from './config.interface';
+import { BaseConfig } from './base.config';
+
+/**
+ * Server 配置接口
+ * 定义 server 配置的基本结构
+ */
+export interface IServerConfig extends BaseConfig{
+    port: number;
+    services?: {
+        auth?: string;
+        [key: string]: any;
+    };
+    token?: {
+        name?: string;
+        [key: string]: any;
+    };
+    [key: string]: any;
+}
 
 export abstract class BaseConfigService {
     logger = new Logger(BaseConfigService.name);
     protected readonly env: string;
+
+    /**
+     * Server 配置
+     * 子类必须实现此属性以提供 server 配置访问
+     */
+    abstract readonly server: IServerConfig;
+
     constructor(protected nacosConfigs?: NacosConfig) {
         if (process.env.NODE_ENV) {
             this.env = process.env.NODE_ENV;
@@ -32,6 +57,10 @@ export abstract class BaseConfigService {
 
     getServiceConfig() {
         /* TODO document why this method 'getServiceConfig' is empty */
+    }
+
+    getServerConfig(): IServerConfig {
+        return this.server;
     }
 
     getOneConfig(key: string) {

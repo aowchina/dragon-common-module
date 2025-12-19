@@ -1,11 +1,14 @@
+import { BaseConfig } from "./base.config";
+import { IServerConfig } from "./baseconfig.service";
+
 // 环境变量的结构体
-export interface NacosConfig {
+export interface NacosConfig extends BaseConfig{
     redis: RedisConfig;
     db: DBConfig;
     kafka: KafkaConfig;
     service: ServiceConfig;
     mongo: MongoConfig;
-    server: ServerConfig;
+    server: IServerConfig;
     bti: BtiConfig;
     admin: AdminConfig;
 }
@@ -78,29 +81,6 @@ interface BtiConfig {
     clientId: string;
     clientSecret: string;
 }
-
-interface JustpayConfig {
-    baseUrl: string;
-    AgentId: string;
-    securityKey: string;
-    whiteList: string[];
-}
-
-interface ServerConfig {
-    siteName: string;
-    allowOrigins: string[];
-    port: number;
-    apiPrefix: number;
-    passSalt: string;
-    tokenName: string;
-    jwtSecret: string;
-    jwtExpiresIn: number;
-    cookieSecret: string;
-    rateLimitWindowMs: number;
-    rateLimitMax: number;
-    swaggerPrefix: string;
-}
-
 interface AdminConfig {
     host: string;
 }

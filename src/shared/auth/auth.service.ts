@@ -52,13 +52,11 @@ export class AuthService {
      * 支持直接配置 HTTP URL 或 Nacos 服务名
      */
     private async getAuthServiceUrl(): Promise<string> {
-        const serverConfig = this.configService.getOneConfig('server') as any;
+        const authService = this.configService.server?.services?.auth;
 
-        if (!serverConfig?.authService) {
-            throw new Error('authService is not configured in server config');
+        if (!authService) {
+            throw new Error('auth service is not configured in server.services.auth');
         }
-
-        const authService = serverConfig.authService;
 
         if (authService.startsWith('http://') || authService.startsWith('https://')) {
             return authService;

@@ -1,4 +1,4 @@
-import { BaseConfigService } from './base/baseconfig.service';
+import { BaseConfigService, IServerConfig } from './base/baseconfig.service';
 import { NacosConfig } from './base/config.interface';
 
 /**
@@ -25,8 +25,12 @@ import { NacosConfig } from './base/config.interface';
  * ```
  */
 export class ConfigService extends BaseConfigService {
+    readonly server: IServerConfig;
+
     constructor(nacosConfigs?: NacosConfig) {
         super(nacosConfigs);
+        // 提供一个默认的 server 实现，直接返回 nacos 配置中的 server 对象
+        this.server = this.nacosConfigs?.server;
     }
 }
 
