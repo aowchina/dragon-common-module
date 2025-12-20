@@ -12,6 +12,10 @@ export { ConfigService, BaseConfigService } from './config/config.service';
 // Auth exports
 export * from './shared/auth';
 
+// Admin exports
+export * from './shared/admin/admin.module';
+export * from './shared/admin/admin.service';
+
 // Redis exports
 export * from './shared/redis/redis.module';
 export * from './shared/redis/redis.service';
@@ -24,6 +28,10 @@ export * from './shared/cluster';
 
 // Graceful Shutdown exports
 export * from './shared/graceful-shutdown';
+
+// Shared Services exports
+export * from './shared/services/service-url.resolver';
+export * from './shared/services/shared.module';
 
 // Decorators exports
 export * from './decorators';
