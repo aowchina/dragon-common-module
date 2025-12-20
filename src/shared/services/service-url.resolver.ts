@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { NacosManager } from '../../config/base/nacos.manager';
-import { BaseConfigService } from '../../config/base/baseconfig.service';
+import { ConfigService } from '../../config/config.service';
 
 /**
  * 服务 URL 解析器
@@ -14,7 +14,7 @@ export class ServiceUrlResolver {
     private urlCache = new Map<string, { url: string; timestamp: number }>();
     private readonly CACHE_TTL = 60000; // 缓存1分钟
 
-    constructor(private readonly configService: BaseConfigService) {}
+    constructor(private readonly configService: ConfigService) {}
 
     /**
      * 获取服务 URL
