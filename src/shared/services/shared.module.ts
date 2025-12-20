@@ -6,11 +6,18 @@ import { ServiceUrlResolver } from './service-url.resolver';
  * @Global 装饰器使该模块的 providers 在整个应用中全局可用
  *
  * 依赖关系：
- * - ServiceUrlResolver 依赖 ConfigService
- * - 各应用需要自己提供 ConfigModule（提供 ConfigService）
- * 
- * 重要：此模块不导入 ConfigModule，避免与各应用自己的 ConfigModule 冲突
- * 各应用的 AppModule 需要确保同时导入 ConfigModule 和 SharedModule
+ * - ServiceUrlResolver 使用 @Inject(BaseConfigService) 注入配置服务
+ * - 各应用需要在自己的模块中提供 BaseConfigService 的 provider，映射到自己的 ConfigService
+ *
+ * 使用方式（在应用的 SharedModule 中）：
+ * @Module({
+ *   providers: [
+ *     {
+ *       provide: BaseConfigService,
+ *       useExisting: ConfigService,  // 使用应用自己的 ConfigService
+ *     }
+ *   ]
+ * })
  */
 @Global()
 @Module({

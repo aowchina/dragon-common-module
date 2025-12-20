@@ -1,12 +1,14 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, Inject } from '@nestjs/common';
 import { NacosManager } from '../../config/base/nacos.manager';
-import { ConfigService } from '../../config/config.service';
+import { BaseConfigService } from '../../config/base/baseconfig.service';
 
 /**
  * 服务 URL 解析器
  * 统一处理服务 URL 的获取，支持：
  * 1. 直接 HTTP/HTTPS URL
  * 2. Nacos 服务名（从注册中心获取实例）
+ *
+ * 注意：使用 @Inject(BaseConfigService) 来支持各应用的 ConfigService（继承自 BaseConfigService）
  */
 @Injectable()
 export class ServiceUrlResolver {
@@ -14,7 +16,7 @@ export class ServiceUrlResolver {
     private urlCache = new Map<string, { url: string; timestamp: number }>();
     private readonly CACHE_TTL = 60000; // 缓存1分钟
 
-    constructor(private readonly configService: ConfigService) {}
+    constructor(@Inject(BaseConfigService) private readonly configService: BaseConfigService) {}
 
     /**
      * 获取服务 URL
