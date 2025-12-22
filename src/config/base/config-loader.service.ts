@@ -8,7 +8,29 @@ export interface ConfigLoaderOptions {
 
 interface ConfigNode {
     '@import'?: string[];
+    '@merge'?: Record<string, MergeConfig>;
     [key: string]: any;
+}
+
+/**
+ * 数组/对象合并策略配置
+ */
+export interface MergeConfig {
+    /**
+     * 合并模式：
+     * - replace: 完全替换（默认）
+     * - merge: 按索引/键值合并（保留未指定字段）
+     * - append: 追加到数组末尾
+     * - patch: 按指定键匹配合并（需配合 arrayMergeBy）
+     * - shallow: 浅合并对象（仅第一层）
+     */
+    mode?: 'replace' | 'merge' | 'append' | 'patch' | 'shallow';
+
+    /**
+     * 数组合并时的匹配键（仅 patch 模式有效）
+     * 例如：'id', 'channelId' 等
+     */
+    arrayMergeBy?: string;
 }
 
 /**
@@ -17,9 +39,10 @@ interface ConfigNode {
  *
  * 核心功能：
  * 1. 处理 @import 语法，从公共配置导入节点
- * 2. 支持点路径语法（a.b.c）简化嵌套配置
- * 3. 按需解密加密配置节点
- * 4. 深度合并配置（同名替换，新key添加）
+ * 2. 支持 @merge 自定义合并策略（支持数组按索引/键值合并）
+ * 3. 支持点路径语法（a.b.c）简化嵌套配置
+ * 4. 按需解密加密配置节点
+ * 5. 深度合并配置（同名替换，新key添加）
  */
 export class ConfigLoaderService {
     private logger = new Logger(ConfigLoaderService.name);
@@ -122,20 +145,20 @@ export class ConfigLoaderService {
                 importedNode = this.decryptNode(importedNode);
 
                 // 按顺序合并（后面覆盖前面）
-                result = this.deepMerge(result, importedNode);
+                result = this.deepMergeWithStrategy(result, importedNode, nodeConfig['@merge']);
 
                 this.logger.debug(`Imported and merged node: ${importRef}`);
             }
         }
 
-        // 2. 提取业务配置（排除 @import）
-        const { '@import': _, ...businessConfig } = nodeConfig;
+        // 2. 提取业务配置（排除 @import 和 @merge）
+        const { '@import': _, '@merge': mergeConfig, ...businessConfig } = nodeConfig;
 
         // 3. 展开点路径（options.client.clientId）
         const expandedConfig = this.expandDotPaths(businessConfig);
 
-        // 4. 合并业务配置（默认行为：同名替换，新key添加）
-        result = this.deepMerge(result, expandedConfig);
+        // 4. 合并业务配置（支持自定义合并策略）
+        result = this.deepMergeWithStrategy(result, expandedConfig, mergeConfig);
 
         // 缓存结果
         if (this.options.enableCache) {
@@ -208,37 +231,164 @@ export class ConfigLoaderService {
     }
 
     /**
-     * 深度合并（简单规则）
+     * 深度合并（简单规则）- 保持向后兼容
      * - 同名字段：替换
      * - 不存在的key：添加
      * - 对象：递归合并
      * - 数组：完全替换
      */
     private deepMerge(target: any, source: any): any {
-        if (!source || typeof source !== 'object') {
+        return this.deepMergeWithStrategy(target, source, undefined, '');
+    }
+
+    /**
+     * 带策略的深度合并（支持 @merge 配置）
+     * @param target 目标对象
+     * @param source 源对象
+     * @param mergeConfig 合并配置（路径 -> 策略）
+     * @param currentPath 当前路径（用于匹配策略）
+     */
+    private deepMergeWithStrategy(
+        target: any,
+        source: any,
+        mergeConfig?: Record<string, MergeConfig>,
+        currentPath: string = '',
+    ): any {
+        // 如果 source 不是对象或为 null，直接返回（替换）
+        if (source === null || typeof source !== 'object') {
             return source;
         }
 
-        if (Array.isArray(source)) {
-            return [...source];
+        // 如果 target 不是对象，用 source 初始化
+        if (target === null || typeof target !== 'object') {
+            return Array.isArray(source) ? [...source] : { ...source };
         }
 
+        // 检查当前路径是否有自定义合并策略
+        const strategy = mergeConfig?.[currentPath];
+
+        // 数组处理
+        if (Array.isArray(source)) {
+            // 如果 target 不是数组，直接替换
+            if (!Array.isArray(target)) {
+                return [...source];
+            }
+
+            // 根据策略处理数组
+            switch (strategy?.mode) {
+                case 'merge':
+                    // 按索引合并，保留未指定的字段
+                    return this.mergeArrayByIndex(target, source, mergeConfig, currentPath);
+
+                case 'append':
+                    // 追加到末尾
+                    return [...target, ...source];
+
+                case 'patch':
+                    // 按 key 字段匹配并合并
+                    if (!strategy.arrayMergeBy) {
+                        this.logger.warn(
+                            `patch mode requires arrayMergeBy for path: ${currentPath}, fallback to replace`,
+                        );
+                        return [...source];
+                    }
+                    return this.patchArrayByKey(target, source, strategy.arrayMergeBy, mergeConfig, currentPath);
+
+                case 'replace':
+                default:
+                    // 默认：完全替换（保持向后兼容）
+                    return [...source];
+            }
+        }
+
+        // 对象处理
         const result = { ...target };
 
-        for (const [key, value] of Object.entries(source)) {
-            if (value === undefined) {
+        // 检查是否使用浅合并（只合并第一层）
+        const useShallowMerge = strategy?.mode === 'shallow';
+
+        for (const key in source) {
+            if (!source.hasOwnProperty(key)) continue;
+
+            const newPath = currentPath ? `${currentPath}.${key}` : key;
+
+            if (useShallowMerge) {
+                // 浅合并：直接替换属性值
+                result[key] = source[key];
+            } else if (key in result) {
+                // 递归合并已存在的 key
+                result[key] = this.deepMergeWithStrategy(result[key], source[key], mergeConfig, newPath);
+            } else {
+                // 新 key 直接赋值
+                result[key] = source[key];
+            }
+        }
+
+        return result;
+    }
+
+    /**
+     * 按索引合并数组（merge 模式）
+     * 只合并 source 中指定的字段，保留 target 中的其他字段
+     */
+    private mergeArrayByIndex(
+        target: any[],
+        source: any[],
+        mergeConfig?: Record<string, MergeConfig>,
+        currentPath?: string,
+    ): any[] {
+        const result = [...target];
+
+        for (let i = 0; i < source.length; i++) {
+            const sourceItem = source[i];
+            const indexPath = `${currentPath}[${i}]`;
+
+            if (i < result.length) {
+                // 合并现有元素
+                result[i] = this.deepMergeWithStrategy(result[i], sourceItem, mergeConfig, indexPath);
+            } else {
+                // 超出原数组长度，直接添加
+                result.push(sourceItem);
+            }
+        }
+
+        return result;
+    }
+
+    /**
+     * 按 key 字段匹配并合并数组（patch 模式）
+     * 在 target 中查找具有相同 key 值的元素并合并
+     */
+    private patchArrayByKey(
+        target: any[],
+        source: any[],
+        keyField: string,
+        mergeConfig?: Record<string, MergeConfig>,
+        currentPath?: string,
+    ): any[] {
+        const result = [...target];
+
+        for (const sourceItem of source) {
+            // 必须是对象且包含 key 字段
+            if (typeof sourceItem !== 'object' || sourceItem === null || !(keyField in sourceItem)) {
+                this.logger.warn(`Source item missing key field '${keyField}' in path: ${currentPath}`);
                 continue;
             }
 
-            if (Array.isArray(value)) {
-                // 数组：完全替换
-                result[key] = [...value];
-            } else if (value !== null && typeof value === 'object') {
-                // 对象：递归合并
-                result[key] = this.deepMerge(result[key] || {}, value);
+            const keyValue = sourceItem[keyField];
+
+            // 在 target 中查找匹配的元素
+            const targetIndex = result.findIndex(
+                (item) => typeof item === 'object' && item !== null && item[keyField] === keyValue,
+            );
+
+            if (targetIndex >= 0) {
+                // 找到匹配项，深度合并
+                const indexPath = `${currentPath}[${targetIndex}]`;
+                result[targetIndex] = this.deepMergeWithStrategy(result[targetIndex], sourceItem, mergeConfig, indexPath);
             } else {
-                // 基本类型：直接替换
-                result[key] = value;
+                // 未找到匹配项，添加到末尾
+                result.push(sourceItem);
             }
         }
 
