@@ -90,7 +90,7 @@ export class AdminService {
     async validate(token: string): Promise<AdminValidationResult> {
         try {
             const adminServiceUrl = await this.getAdminServiceUrl();
-            const validateUrl = `${adminServiceUrl}/api/v1/validateToken`;
+            const validateUrl = `${adminServiceUrl}/api/validateToken`;
 
             this.logger.debug(`Validating admin token at: ${validateUrl}`);
 
