@@ -23,6 +23,15 @@ export class BaseServerConfig extends BaseConfig {
     };
     services?: {
         auth?: string;
+        tweet?: string;
+        sport_bet?: string;
+        payment?: string;
+        wallet?: string;
+        user?: string;
+        data?: string;
+        risk?: string;
+        admin?: string;
+        activity?: string;
         [key: string]: any;
     };
     [key: string]: any;
