@@ -10,11 +10,28 @@ export class RedisService {
         if (!config.redis) {
             throw new Error('redis config is required in ConfigService');
         }
-        const redisConfig = config.redis;
-        if (redisConfig.nodes) {
-            this.client = new Redis.Cluster(redisConfig.nodes, redisConfig);
+        const redisConfig = { ...config.redis };
+        
+        // Remove 'exp' field if present to prevent timeout calculation issues
+        // 'exp' is for JWT expiration, not Redis connection configuration
+        if (redisConfig.exp) {
+            delete redisConfig.exp;
+        }
+        
+        // Ensure proper timeout defaults to prevent negative timeout warnings
+        const connectionOptions = {
+            ...redisConfig,
+            connectTimeout: redisConfig.connectTimeout || 10000,
+            retryStrategy: redisConfig.retryStrategy || ((times) => {
+                const delay = Math.min(times * 50, 2000);
+                return delay;
+            }),
+        };
+        
+        if (connectionOptions.nodes) {
+            this.client = new Redis.Cluster(connectionOptions.nodes, connectionOptions);
         } else {
-            this.client = new Redis(redisConfig);
+            this.client = new Redis(connectionOptions);
         }
     }
 
