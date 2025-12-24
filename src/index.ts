@@ -36,6 +36,9 @@ export * from './shared/services/shared.module';
 // Decorators exports
 export * from './decorators';
 
+// Guards exports
+export * from './shared/guards/client-auth.guard';
+
 // Filters exports
 export * from './filters';
 
