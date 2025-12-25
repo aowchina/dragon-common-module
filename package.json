@@ -1,6 +1,6 @@
 {
     "name": "@dragon/common",
-    "version": "1.2.1",
+    "version": "1.3.0",
     "description": "Dragon Common Module - Shared utilities and services",
     "main": "dist/index.js",
     "types": "dist/index.d.ts",
