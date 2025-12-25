@@ -35,6 +35,9 @@ class KafkaService implements OnModuleInit, OnModuleDestroy {
 @Module({})
 export class KafkaModule {
     static forRoot(options: KafkaModuleOptions): DynamicModule {
+        // Exclude problematic fields like 'exp' and 'timeout' that interfere with KafkaJS
+        const { exp, timeout, ...cleanKafkaConfig } = options.kafkaConfig;
+        
         return {
             module: KafkaModule,
             global: true,
@@ -42,7 +45,7 @@ export class KafkaModule {
                 ClientsModule.register([
                     {
                         name: 'KAFKA_CLIENT',
-                        ...options.kafkaConfig,
+                        ...cleanKafkaConfig,
                     },
                 ]),
             ],
@@ -70,7 +73,9 @@ export class KafkaModule {
                         name: 'KAFKA_CLIENT',
                         useFactory: async (...args: any[]) => {
                             const config = await options.useFactory(...args);
-                            return config.kafkaConfig;
+                            // Exclude problematic fields like 'exp' and 'timeout' that interfere with KafkaJS
+                            const { exp, timeout, ...cleanKafkaConfig } = config.kafkaConfig;
+                            return cleanKafkaConfig;
                         },
                         inject: options.inject || [],
                     },
