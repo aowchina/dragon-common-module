@@ -119,9 +119,7 @@ export class AdminService {
             }
 
             // 如果 code 不是 200，说明验证失败
-            this.logger.warn(
-                `Admin token validation failed: code=${responseData?.code}, msg=${responseData?.msg}`,
-            );
+            this.logger.warn(`Admin token validation failed: code=${responseData?.code}, msg=${responseData?.msg}`);
             return {
                 code: responseData?.code || -1,
                 message: responseData?.msg || 'Invalid response from admin service',
