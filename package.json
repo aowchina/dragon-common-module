@@ -24,7 +24,7 @@
         "@nestjs/microservices": "^11.1.8",
         "axios": "^1.13.2",
         "ioredis": "^5.8.2",
-        "kafkajs": "^2.2.3",
+        "kafkajs": "^2.2.4",
         "rxjs": "^7.8.2"
     },
     "dependencies": {
