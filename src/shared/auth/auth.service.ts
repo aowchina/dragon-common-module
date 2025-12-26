@@ -40,7 +40,7 @@ export interface AuthServiceConfig {
  */
 @Injectable()
 export class AuthService {
-    private readonly logger = new Logger(AuthService.name);
+    protected readonly logger = new Logger(AuthService.name);
 
     constructor(
         private readonly httpService: HttpService,

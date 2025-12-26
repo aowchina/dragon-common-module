@@ -41,6 +41,21 @@ export class RedisService {
         return await this.client.set(key, val, 'EX', seconds);
     }
 
+    /**
+     *
+     * @param key 锁 key 值
+     * @param val key 对应的 val
+     * @param seconds 可选，过期时间，单位 秒
+     * @returns OK 表示锁成功
+     * @returns null 表示没抢到锁
+     */
+    async setnx(key: string, val: string, seconds?: number) {
+        if (!seconds) {
+            return await this.client.setnx(key, val);
+        }
+        return await this.client.set(key, val, 'NX', 'EX', seconds);
+    }
+
     async get(key: string): Promise<string> {
         if (!key || key === '*') return null;
         return await this.client.get(key);
@@ -55,6 +70,11 @@ export class RedisService {
     async ttl(key: string): Promise<number | null> {
         if (!key) return null;
         return await this.client.ttl(key);
+    }
+
+    async incr(key: string): Promise<number> {
+        if (!key) return 0;
+        return await this.client.incr(key);
     }
 
     async hset(key: string, field: string, value: string): Promise<string | number | null> {
@@ -122,12 +142,7 @@ export class RedisService {
         return await this.client.lpush(key, ...val);
     }
 
-    async lpush(key: string, val: string): Promise<number> {
-        if (!key) return 0;
-        return await this.client.lpush(key, val);
-    }
-
-    async lpop(key: string, val: string): Promise<string> {
+    async lLeftPop(key: string): Promise<string> {
         if (!key) return null;
         return await this.client.lpop(key);
     }
@@ -157,16 +172,9 @@ export class RedisService {
         return await this.client.rpushx(key, ...val);
     }
 
-    async lLeftPop(key: string): Promise<string> {
-        if (!key) return null;
-        const result = await this.client.blpop(key);
-        return result.length > 0 ? result[0] : null;
-    }
-
     async lRightPop(key: string): Promise<string> {
         if (!key) return null;
-        const result = await this.client.brpop(key);
-        return result.length > 0 ? result[0] : null;
+        return await this.client.rpop(key);
     }
 
     async lTrim(key: string, start: number, stop: number): Promise<'OK' | null> {
