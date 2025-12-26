@@ -8,7 +8,8 @@
         "format": "prettier --write \"src/**/*.ts\" \"*.json\" \"src/**/*.json\"",
         "build": "tsc",
         "watch": "tsc --watch",
-        "clean": "rimraf dist"
+        "clean": "rimraf dist",
+        "lint": "eslint \"src/**/*.ts\" --fix"
     },
     "keywords": [
         "dragon",
@@ -32,10 +33,17 @@
         "typeorm": "^0.3.20"
     },
     "devDependencies": {
+        "@eslint/js": "^9.39.2",
         "@types/lodash": "^4.17.13",
         "@types/node": "^24.10.0",
-        "rimraf": "^6.1.0",
+        "@typescript-eslint/eslint-plugin": "^8.17.0",
+        "@typescript-eslint/parser": "^8.17.0",
+        "eslint": "^9.15.0",
+        "eslint-config-prettier": "^9.1.0",
+        "eslint-plugin-prettier": "^5.2.1",
+        "globals": "^16.5.0",
         "prettier": "^3.7.4",
+        "rimraf": "^6.1.0",
         "typescript": "^5.9.3"
     }
 }

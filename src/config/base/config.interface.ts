@@ -1,8 +1,8 @@
-import { BaseConfig } from "./base.config";
-import { BaseServerConfig } from "./baseconfig.service";
+import { BaseConfig } from './base.config';
+import { BaseServerConfig } from './baseconfig.service';
 
 // 环境变量的结构体
-export interface NacosConfig extends BaseConfig{
+export interface NacosConfig extends BaseConfig {
     redis: RedisConfig;
     db: DBConfig;
     kafka: KafkaConfig;

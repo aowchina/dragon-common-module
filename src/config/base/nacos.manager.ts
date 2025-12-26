@@ -95,7 +95,7 @@ export class NacosManager extends NacosServerConfig {
         // ✨ 1. 并行获取服务配置和公共配置（性能优化）
         const [serviceConfig, commonConfig] = await Promise.all([
             this.getConfig(configDataId, this.GROUP),
-            this.getConfig('dragon.common', this.GROUP)
+            this.getConfig('dragon.common', this.GROUP),
         ]);
 
         if (!serviceConfig) {

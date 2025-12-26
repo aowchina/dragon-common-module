@@ -385,7 +385,12 @@ export class ConfigLoaderService {
             if (targetIndex >= 0) {
                 // 找到匹配项，深度合并
                 const indexPath = `${currentPath}[${targetIndex}]`;
-                result[targetIndex] = this.deepMergeWithStrategy(result[targetIndex], sourceItem, mergeConfig, indexPath);
+                result[targetIndex] = this.deepMergeWithStrategy(
+                    result[targetIndex],
+                    sourceItem,
+                    mergeConfig,
+                    indexPath,
+                );
             } else {
                 // 未找到匹配项，添加到末尾
                 result.push(sourceItem);
@@ -400,10 +405,7 @@ export class ConfigLoaderService {
      */
     private getCacheKey(nodeName: string, nodeConfig: ConfigNode): string {
         const crypto = require('crypto');
-        const hash = crypto.createHash('md5')
-            .update(JSON.stringify(nodeConfig))
-            .digest('hex')
-            .substring(0, 8);
+        const hash = crypto.createHash('md5').update(JSON.stringify(nodeConfig)).digest('hex').substring(0, 8);
         return `${nodeName}:${hash}`;
     }
 

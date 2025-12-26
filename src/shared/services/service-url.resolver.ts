@@ -43,7 +43,7 @@ export class ServiceUrlResolver {
 
         // 检查缓存
         const cached = this.urlCache.get(serviceName);
-        if (cached && (Date.now() - cached.timestamp) < this.CACHE_TTL) {
+        if (cached && Date.now() - cached.timestamp < this.CACHE_TTL) {
             return cached.url;
         }
 
@@ -55,7 +55,7 @@ export class ServiceUrlResolver {
             // 更新缓存
             this.urlCache.set(serviceName, {
                 url: fullUrl,
-                timestamp: Date.now()
+                timestamp: Date.now(),
             });
 
             return fullUrl;
