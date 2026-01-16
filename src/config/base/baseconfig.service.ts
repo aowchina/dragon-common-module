@@ -47,6 +47,12 @@ export abstract class BaseConfigService {
      */
     protected abstract server: BaseServerConfig;
 
+    /**
+     * 配置更新回调列表
+     * 用于支持动态配置更新时的事件通知
+     */
+    private configUpdateCallbacks: Array<(updatedKeys: string[]) => void> = [];
+
     constructor(protected nacosConfigs?: NacosConfig) {
         if (process.env.NODE_ENV) {
             this.env = process.env.NODE_ENV;
@@ -83,6 +89,34 @@ export abstract class BaseConfigService {
     getOneConfig(key: string) {
         if (this.nacosConfigs && this.nacosConfigs[key]) {
             return this.nacosConfigs[key];
+        }
+    }
+
+    /**
+     * 注册配置更新回调
+     * 当配置更新时，会调用所有注册的回调函数
+     * @param callback 配置更新时的回调函数，参数为更新的配置键列表
+     */
+    onConfigUpdate(callback: (updatedKeys: string[]) => void): void {
+        this.configUpdateCallbacks.push(callback);
+        this.logger.log('✅ Config update callback registered');
+    }
+
+    /**
+     * 触发配置更新回调
+     * 子类在更新配置后应调用此方法来通知所有监听器
+     * @param updatedKeys 更新的配置键列表
+     */
+    protected notifyConfigUpdate(updatedKeys: string[]): void {
+        if (updatedKeys.length > 0 && this.configUpdateCallbacks.length > 0) {
+            this.logger.log(`🔔 Notifying ${this.configUpdateCallbacks.length} listeners about config updates`);
+            this.configUpdateCallbacks.forEach(callback => {
+                try {
+                    callback(updatedKeys);
+                } catch (error) {
+                    this.logger.error('Config update callback error:', error);
+                }
+            });
         }
     }
 
